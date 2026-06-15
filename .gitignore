@@ -1,0 +1,12 @@
+# OS / editor
+.DS_Store
+.idea/
+
+# 凭据 / 环境 / 日志（严禁入库）
+**/.credentials
+**/.env
+**/logs/
+*.log
+
+# 依赖
+node_modules/
