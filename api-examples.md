@@ -2,6 +2,8 @@
 
 CLI 是可灵后端 MCP server 的薄客户端：所有业务调用都是 MCP `tools/call`（Streamable HTTP，`{baseUrl}/mcp`，`Authorization: Bearer`）。本文档是工具协议速查；字段速查见 [`reference.md`](./reference.md)。
 
+> **请求头携带 CLI 身份**：每次 MCP 请求都会带上 `X-Kling-Cli-Name`（区域包名，如 `@klingai/cli-cn` / `@klingai/cli-global`）与 `X-Kling-Cli-Version`（CLI 版本），供服务端识别区域 + 版本（可据此对过旧客户端给出升级提示）。值由 CLI 自动注入，无需关心。
+
 ## 工具清单
 
 | # | 工具名 | 分组 | 同步性 | 触达下游 | 一句话说明 |
@@ -13,7 +15,7 @@ CLI 是可灵后端 MCP server 的薄客户端：所有业务调用都是 MCP `t
 | 5 | `image_to_video` | 生成 | **异步** | 是 | 图生视频（需 inputs），返回 `generation_id` |
 | 6 | `query_tasks` | 任务查询 | 同步 | 是 | 按 `generation_id` 查询生成状态与最终资源 URL |
 | 7 | `file_upload` | 文件上传 | 同步 | 是 | 申请一次性上传票据；文件字节由调用方自行上传（两步式，见下） |
-| 8 | `query_membership_and_points` | 商业化 | 同步 | 是 | 查询会员身份与可用灵感值（身份取自 JWT，无参数） |
+| 8 | `query_membership_and_credits` | 商业化 | 同步 | 是 | 查询会员身份与可用灵感值（身份取自 JWT，无参数） |
 
 ## who_am_i
 
@@ -116,15 +118,15 @@ CLI 是可灵后端 MCP server 的薄客户端：所有业务调用都是 MCP `t
 
 第二步（调用方自行执行，CLI 已封装）：向 `upload_url` 发 `multipart/form-data` POST，字段 `ticket`（票据）+ `file`（文件字节）。上传响应含文件 URL，可作为 `inputs[].url`。票据单次有效、过期作废。
 
-## query_membership_and_points
+## query_membership_and_credits
 
 请求参数：无（身份取自 JWT）。返回示例：
 
 ```json
-{ "userId": 10000001, "membershipType": "NORMAL", "availablePoints": 0.0 }
+{ "userId": 10000001, "membershipType": "NORMAL", "availableRemainCredits": 0 }
 ```
 
-`membershipType`：`NORMAL` / `VIP` / `SVIP` / `SSVIP` / `SSSVIP`；`availablePoints` 为用户可见的灵感值，无需换算。
+`membershipType`：`NORMAL` / `VIP` / `SVIP` / `SSVIP` / `SSSVIP`；`availableRemainCredits` 为用户可见的灵感值，无需换算。
 
 > CLI 的 `account` 命令即此工具的直通调用。
 

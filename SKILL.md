@@ -1,6 +1,5 @@
 ---
 name: kling-cli
-version: "2.0.0"
 description: >-
   可灵 AI（Kling）官方 CLI 的使用技能：文生图 / 参考图生图 / 文生视频 / 图生视频。CLI 是薄 MCP client：
   调用 text_to_image / image_to_image / text_to_video / image_to_video（模型与参数规格由 who_am_i 动态声明），
@@ -88,7 +87,7 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 | 6 | `image_to_video --image <url\|path> <prompt>` | 生成 | **异步** | 是 | 图生视频（让图动起来），返回 `generation_id` |
 | 7 | `query_tasks <generationId>` | 任务查询 | 同步 | 是 | 按 `generation_id` 查询生成状态与最终资源 URL（`works[].url`） |
 | 8 | `file_upload <filePath>` | 文件上传 | 同步 | 是 | 两步式上传（申请一次性票据 + 上传文件字节），返回公网 URL |
-| 9 | `account` | 商业化 | 同步 | 是 | 会员类型 + 可用灵感值（`query_membership_and_points`，身份取自 JWT） |
+| 9 | `account` | 商业化 | 同步 | 是 | 会员类型 + 可用灵感值（`query_membership_and_credits`，身份取自 JWT） |
 | 10 | `login` | 鉴权 | 同步 | 否（仅 OAuth 服务） | 浏览器 OAuth 登录（DCR + PKCE），token 写入本地 `.credentials` |
 | 11 | `logout` | 鉴权 | 同步 | 否（仅 OAuth 服务） | 吊销（尽力）并清除本地登录态，保留已注册的 client id |
 

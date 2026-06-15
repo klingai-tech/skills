@@ -37,11 +37,11 @@
 - 第一步（MCP 工具）返回：**`ticket`**（一次性票据）、**`upload_url`**（上传地址）、**`expire_at`**（过期时间戳）。
 - 第二步由 CLI 自动完成：multipart POST（`ticket` + `file`）到 `upload_url`，CLI 会把响应中的文件 URL 规整到 `body.url`。
 
-## account（query_membership_and_points 直通）
+## account（query_membership_and_credits 直通）
 
 - **`userId`**：用户 ID。
 - **`membershipType`**：会员身份（`NORMAL` / `VIP` / `SVIP` / `SSVIP` / `SSSVIP`）。
-- **`availablePoints`**：可用灵感值（用户可见值，无需换算）。
+- **`availableRemainCredits`**：可用灵感值（用户可见值，无需换算）。
 
 ## CLI 轮询结果（--poll / query_tasks --poll）
 
