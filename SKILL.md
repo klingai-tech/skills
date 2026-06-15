@@ -9,7 +9,6 @@ description: >-
   text_to_image、image_to_image、text_to_video、image_to_video、query_tasks、who_am_i、file_upload、
   image generation、video generation、kling 命令、.credentials、
   国内站、海外站、global、海外版、区域、region、安装、install。
-primaryEnv: KLING_BASE_URL
 requires: node>=18
 homepage: https://klingai.com
 ---
@@ -89,11 +88,11 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 | 6 | `image_to_video --image <url\|path> <prompt>` | 生成 | **异步** | 是 | 图生视频（让图动起来），返回 `generation_id` |
 | 7 | `query_tasks <generationId>` | 任务查询 | 同步 | 是 | 按 `generation_id` 查询生成状态与最终资源 URL（`works[].url`） |
 | 8 | `file_upload <filePath>` | 文件上传 | 同步 | 是 | 两步式上传（申请一次性票据 + 上传文件字节），返回公网 URL |
-| 9 | `account` | 商业化 | 同步 | 是（kRPC） | 会员类型 + 可用灵感值（`query_membership_and_points`，身份取自 JWT） |
+| 9 | `account` | 商业化 | 同步 | 是 | 会员类型 + 可用灵感值（`query_membership_and_points`，身份取自 JWT） |
 | 10 | `login` | 鉴权 | 同步 | 否（仅 OAuth 服务） | 浏览器 OAuth 登录（DCR + PKCE），token 写入本地 `.credentials` |
 | 11 | `logout` | 鉴权 | 同步 | 否（仅 OAuth 服务） | 吊销（尽力）并清除本地登录态，保留已注册的 client id |
 
-> **端点已内置**：包内 `src/config.ts` 的 `DEFAULT_BASE_URL` 在发布时定稿，开箱即用、无需配置；`KLING_BASE_URL`（环境变量或 `.env`）仅作覆盖手段。没有 config 命令。
+> **端点已内置**：包内 `src/config.ts` 的 `DEFAULT_BASE_URL` 是端点的**唯一来源**，发布时定稿、开箱即用、无需配置；**没有任何外部覆盖口子**（无 `KLING_BASE_URL` 环境变量、无 `.env`），也没有 config 命令。换端点只能改 `src/config.ts` 后重新发布。
 
 > **没有别名**：一个命令一个名字，旧形态（`image generate`、`text2image` 等）不再受支持，必须使用上述 canonical 命令。
 
@@ -136,14 +135,14 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 2. **禁止自动改 prompt 重投**：任务失败或超时，**不要**自行修改 prompt 重新提交。必须先告知用户失败原因，获得明确同意后才可重试。
 3. **重试需用户授权**：轮询超时、状态异常、内容被拦截等情况，向用户说明后询问「继续等待 / 重试 / 放弃」，不得静默重投或静默结束。
 4. **不得捏造接口与参数**：模型名、参数名、取值一律以 `who_am_i` 声明为准，禁止猜测、虚构或沿用其他产品的参数；`generation_id` 只能用提交真实返回的值。
-5. **参数错误不扣费**：服务端在转发下游前做参数校验，校验类报错可在修正参数后直接重试（这是无需用户重新授权的唯一重试场景）。
+5. **参数错误不扣费**：服务端在转发下游前做参数校验，校验类报错可在修正参数后重试（这是无需用户重新授权的唯一重试场景）。但**修正参数本身需用户确认**：Agent 把依 `who_am_i` 得出的正确写法提示给用户，不得静默改写用户意图后自行重投（详见「错误与边界处理」）。
 
 ---
 
 ## 前置条件
 
 - **Node.js 22+**。
-- **端点已内置，无需配置**：发布时在 `src/config.ts` 定稿 `DEFAULT_BASE_URL`。特殊情况可用 `KLING_BASE_URL`（环境变量或 `~/.kling/.env`）覆盖——仅在用户明确要求换端点时使用。
+- **端点已内置，无需配置**：发布时在 `src/config.ts` 定稿 `DEFAULT_BASE_URL`，这是端点的唯一来源，**无外部覆盖口子**（无 `KLING_BASE_URL`、无 `.env`）。换端点须改 `src/config.ts` 后重新发布。
 - **登录态**：保存在用户目录 **`~/.kling/.credentials`**（与包目录无关，升级/重装 CLI 不丢登录态），按**端点 host** 分 section（如 `[klingai.com]`），含 `ACCESS_TOKEN` / `REFRESH_TOKEN` 等（OAuth：DCR + 授权码 + PKCE + RFC 8707 resource）。token 过期由 CLI 用 refresh token **自动静默续期**并回写文件。
 - **任何输出/回复中不要复述端点地址等环境信息**。
 
@@ -223,6 +222,8 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 2. 模型相关报错（如 model 不合法）→ 先 `who_am_i` 查可用模型再修正。
 3. `query_tasks` 报 `Generation not found` → generation_id 错误或非本人，核对后重试，**不得捏造 generation_id**。
 4. 响应缺少 `generation_id` → 提交可能未成功，向用户说明，不得编造。
+5. **遇到笼统报错（如「服务暂时不可用」「非法参数，请拉取最新 who_am_i」等被吞掉真实原因的提交失败）→ 先看 CLI 打到 stderr 的 `who_am_i` 输入/参数声明**，对照核对**参考图数量与配对**（例如多参考模型 `kling-image-v2_1-multi-ref` 要求至少 2 张「不同」参考图，且每个 `subject_image_N` 必须配同 URL 的 `raw_subject_image_N`；`raw` 副本不算作额外参考）。**这是参数校验类失败、不扣费**。
+   - ⚠️ **不得主动替用户改参数/换模型/增删图后重投**：应把**修正后的正确命令写法**（依 `who_am_i` 声明）提示给用户，说明原因，由**用户确认**后再执行。绝不静默改写用户意图。
 
 ### 出错时的行为准则
 

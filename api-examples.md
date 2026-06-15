@@ -13,7 +13,7 @@ CLI 是可灵后端 MCP server 的薄客户端：所有业务调用都是 MCP `t
 | 5 | `image_to_video` | 生成 | **异步** | 是 | 图生视频（需 inputs），返回 `generation_id` |
 | 6 | `query_tasks` | 任务查询 | 同步 | 是 | 按 `generation_id` 查询生成状态与最终资源 URL |
 | 7 | `file_upload` | 文件上传 | 同步 | 是 | 申请一次性上传票据；文件字节由调用方自行上传（两步式，见下） |
-| 8 | `query_membership_and_points` | 商业化 | 同步 | 是（kRPC） | 查询会员身份与可用灵感值（身份取自 JWT，无参数） |
+| 8 | `query_membership_and_points` | 商业化 | 同步 | 是 | 查询会员身份与可用灵感值（身份取自 JWT，无参数） |
 
 ## who_am_i
 
@@ -21,7 +21,7 @@ CLI 是可灵后端 MCP server 的薄客户端：所有业务调用都是 MCP `t
 
 ```json
 {
-  "user": { "user_id": 2189248745 },
+  "user": { "user_id": 10000001 },
   "available_models": {
     "text_to_image": [
       {
@@ -41,7 +41,7 @@ CLI 是可灵后端 MCP server 的薄客户端：所有业务调用都是 MCP `t
 }
 ```
 
-- 模型名、参数、默认值均以**运行时返回**为准（服务端 Kconf 配置）。
+- 模型名、参数、默认值均以**运行时返回**为准（服务端配置）。
 - `arguments[]`：`required` 必填恒无默认值；`allowed_values` 不出现表示不限制；选填缺省时服务端回填 `default`。
 
 ## 生成类工具通用协议
@@ -80,7 +80,7 @@ CLI 是可灵后端 MCP server 的薄客户端：所有业务调用都是 MCP `t
 
 ## query_tasks
 
-请求：`{ "generationId": "<generation_id 原值>" }`。返回（已完成，staging 实测状态为大写）：
+请求：`{ "generationId": "<generation_id 原值>" }`。返回（已完成，实测状态为大写）：
 
 ```json
 {
@@ -92,7 +92,7 @@ CLI 是可灵后端 MCP server 的薄客户端：所有业务调用都是 MCP `t
     {
       "status": "COMPLETED",
       "content_type": "image",
-      "url": "https://kcdn.staging.kuaishou.com/.../out.png",
+      "url": "https://cdn.example.com/.../out.png",
       "url_without_watermark": "https://.../out_clean.png",
       "cover_url": "https://.../cover.jpg",
       "cover_url_without_watermark": "https://.../cover_clean.jpg"
@@ -121,7 +121,7 @@ CLI 是可灵后端 MCP server 的薄客户端：所有业务调用都是 MCP `t
 请求参数：无（身份取自 JWT）。返回示例：
 
 ```json
-{ "userId": 2189248745, "membershipType": "NORMAL", "availablePoints": 0.0 }
+{ "userId": 10000001, "membershipType": "NORMAL", "availablePoints": 0.0 }
 ```
 
 `membershipType`：`NORMAL` / `VIP` / `SVIP` / `SSVIP` / `SSSVIP`；`availablePoints` 为用户可见的灵感值，无需换算。

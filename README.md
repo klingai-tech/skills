@@ -1,5 +1,5 @@
-# kling-skills
+# skills
 
 ```bash
-npx skills add <org>/kling-skills
+npx skills add klingai-tech/skills
 ```
