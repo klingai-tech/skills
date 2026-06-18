@@ -41,7 +41,8 @@
 
 - **`userId`**：用户 ID。
 - **`membershipType`**：会员身份（`NORMAL` / `VIP` / `SVIP` / `SSVIP` / `SSSVIP`）。
-- **`availableRemainCredits`**：可用灵感值（用户可见值，无需换算）。
+- **`availableRemainCredits`**：可用灵感值（用户可见值，无需换算）。`0` 或过低时，按「余额不足与充值」引导用户充值。
+- **充值 / 会员链接**：不在响应 body 里，而在该工具的 **description（`tools/list` 元数据）** 中由服务端动态提供。需要引导充值时取用该链接，**勿在本地写死**（详见 SKILL「余额不足与充值」）。
 
 ## CLI 轮询结果（--poll / query_tasks --poll）
 

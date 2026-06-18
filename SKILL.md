@@ -1,7 +1,7 @@
 ---
 name: kling-cli
 description: >-
-  可灵 AI（Kling）官方 CLI 的使用技能：文生图 / 参考图生图 / 文生视频 / 图生视频。CLI 是薄 MCP client：
+  可灵 AI（Kling）官方 CLI 的使用技能：文生图 / 参考图生图 / 文生视频 / 图生视频。CLI 通过 MCP 服务与可灵交互：
   调用 text_to_image / image_to_image / text_to_video / image_to_video（模型与参数规格由 who_am_i 动态声明），
   返回 generation_id 后用 query_tasks 轮询，完成后提取 works[].url 展示给用户。命令无别名。
   触发词：可灵、Kling、文生图、参考图生图、文生视频、图生视频、Omni、omni、MCP、generation_id、轮询、灵感值、
@@ -37,10 +37,10 @@ which kling   # 有输出路径 → 已安装，直接跳到登录；未找到 �
 
 | 用户区域 | 判断依据 | 安装命令 |
 |----------|----------|----------|
-| 国内站 | 账号登录 klingai.com（中国大陆） | `npm i -g @klingai/cli-cn --registry=https://npm.corp.kuaishou.com` |
-| 海外站 | 账号登录 global 站 | `npm i -g @klingai/cli-global --registry=https://npm.corp.kuaishou.com` |
+| 国内站 | 账号登录 klingai.com（中国大陆） | `npm i -g @klingai/cli-cn --registry=https://registry.npmjs.org` |
+| 海外站 | 账号登录 global 站 | `npm i -g @klingai/cli-global --registry=https://registry.npmjs.org` |
 
-> ⚠️ 两个包目前**仅发布到内网 registry**（`npm.corp.kuaishou.com`），尚不具备公网分发条件，因此当前仅面向可访问内网的环境/ Agent。两个包的端点均在各自包内 `src/config.ts` 定稿，开箱即用、无需配置。
+> 两个包发布到 npm 官方 registry。两个包的端点均在各自包内 `src/config.ts` 定稿，开箱即用、无需配置。
 
 ### 第 2 步：登录（打开浏览器完成 OAuth 授权，这是获取凭据的唯一方式）
 
@@ -119,7 +119,8 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 | 图生视频 / 让图动起来 | `image_to_video` | `--image` 必填，提交后轮询 |
 | 明确要求 omni | 生成命令加 `--omni` | 未明确提到 omni 时不加 |
 | 上传本地素材 | `file_upload` | 两步式：取票据 + 上传，返回公网 URL |
-| 查会员 / 账户身份 | `account` | 返回 user_id + membership（直接展示） |
+| 查会员 / 账户身份 / 查余额 | `account` | 返回 user_id + membership + 可用灵感值（直接展示） |
+| 充值 / 余额不足 / 开通会员 | `account` | 展示服务端返回的充值/会员链接（**动态取自 MCP，勿写死**，见「余额不足与充值」） |
 | 仅说「用可灵生成」等模糊意图 | — | **先问清是图还是视频，再提交** |
 
 > 如果用户意图不明确，**必须先确认再提交**，不得擅自假设。
@@ -144,6 +145,7 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 - **端点已内置，无需配置**：发布时在 `src/config.ts` 定稿 `DEFAULT_BASE_URL`，这是端点的唯一来源，**无外部覆盖口子**（无 `KLING_BASE_URL`、无 `.env`）。换端点须改 `src/config.ts` 后重新发布。
 - **登录态**：保存在用户目录 **`~/.kling/.credentials`**（与包目录无关，升级/重装 CLI 不丢登录态），按**端点 host** 分 section（如 `[klingai.com]`），含 `ACCESS_TOKEN` / `REFRESH_TOKEN` 等（OAuth：DCR + 授权码 + PKCE + RFC 8707 resource）。token 过期由 CLI 用 refresh token **自动静默续期**并回写文件。
 - **任何输出/回复中不要复述端点地址等环境信息**。
+  - **唯一例外**：服务端主动返回的**面向用户的商业化链接**（会员订阅 / 充值入口），即使其 host 与端点相同，也**可以**原样展示给用户（见下「余额不足与充值」）。该链接**只能取自服务端动态返回的内容（MCP 工具的 description / 报错文本），严禁在本地写死 URL**。
 
 ### 凭据纪律
 
@@ -212,6 +214,13 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 - 无登录态 → 先 `login`；鉴权错误 → 重新 `login`；不得使用对话中出现过的凭据值。
 - **权限不足类错误（如灰度未开通）→ 不要重新登录**，直接告知用户："该功能处于灰度中，暂时对您不可用，请继续关注！"然后**立即终止**，不得重试。
 - **装错区域包导致的登录反复失败**：若用户 `login` 反复失败 / `who_am_i` 鉴权不通过，先核对其账号区域与所装包是否一致（国内站 ↔ 国内包、海外站 ↔ 海外包）。**不一致 → 不要反复重试登录**，应引导用户卸载当前包（`npm un -g <当前包名>`）后，按「安装与登录」表重装对应区域的包，再 `login`。
+
+### 余额不足与充值
+
+- **触发场景**：① 提交生成时服务端报「灵感值不足 / 余额不足 / 配额用尽」类错误；② `account` 显示 `availableRemainCredits` 为 0 或过低；③ 用户**主动要求充值 / 开通会员**。
+- **应对**：向用户说明当前情况，并**提供充值 / 会员订阅链接**，引导其前往充值；充值是计费操作，**CLI / MCP 无法代为完成**（只读额度），只能给链接。
+- **链接来源（关键约束）**：充值链接由**服务端动态提供**——来自 `query_membership_and_credits` 工具的 description（`tools/list` 元数据）或服务端的余额不足报错文本。**严禁在本地或本 skill 中写死该 URL**：服务端可能随区域/活动变更链接，写死会过期或给错区域的用户。取到什么就展示什么，取不到则提示用户「请在可灵官网/App 的会员中心充值」，不要编造链接。
+- 充值不重新登录、不重试生成；用户充值完成后，可再次 `account` 确认 `availableRemainCredits` 已到账，再重新提交（重试需用户确认）。
 
 ### 工具调用 / 业务错误
 
