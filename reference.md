@@ -2,6 +2,8 @@
 
 完整协议与示例见同目录 **`api-examples.md`**。CLI 返回 `{ ok, status, body }`，`body` 为工具结果（已自动解析 JSON 文本块）。
 
+`kling <command> --help` 对 MCP-backed 命令会尽量展示该工具的实时 `tools/list` 声明（工具说明 + inputSchema）；获取失败时回退本地静态用法。完整模型清单与参数规格见下方 `who_am_i`。
+
 ## who_am_i（能力发现）
 
 - **`user.user_id`**：当前用户 ID（来自 JWT）。
@@ -43,6 +45,13 @@
 - **`membershipType`**：会员身份（`NORMAL` / `VIP` / `SVIP` / `SSVIP` / `SSSVIP`）。
 - **`availableRemainCredits`**：可用灵感值（用户可见值，无需换算）。`0` 或过低时，按「余额不足与充值」引导用户充值。
 - **充值 / 会员链接**：不在响应 body 里，而在该工具的 **description（`tools/list` 元数据）** 中由服务端动态提供。需要引导充值时取用该链接，**勿在本地写死**（详见 SKILL「余额不足与充值」）。
+
+## tool_list（MCP tools/list）
+
+- **`body.tools[]`**：后端 MCP server 当前暴露的工具清单。
+- **`name`**：工具名；CLI 的 canonical 业务命令通常与后端 MCP 工具名 1:1。
+- **`description`**：服务端提供的工具说明；商业化链接等动态说明以这里为准，勿在本地写死。
+- **`inputSchema`**：该工具的 JSON Schema 输入声明，用于排障或确认服务端实际支持的参数。
 
 ## CLI 轮询结果（--poll / query_tasks --poll）
 

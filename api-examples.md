@@ -1,8 +1,6 @@
 # 可灵 MCP 工具协议与示例
 
-CLI 是可灵后端 MCP server 的薄客户端：所有业务调用都是 MCP `tools/call`（Streamable HTTP，`{baseUrl}/mcp`，`Authorization: Bearer`）。本文档是工具协议速查；字段速查见 [`reference.md`](./reference.md)。
-
-> **请求头携带 CLI 身份**：每次 MCP 请求都会带上 `X-Kling-Cli-Name`（区域包名，如 `@klingai/cli-cn` / `@klingai/cli-global`）与 `X-Kling-Cli-Version`（CLI 版本），供服务端识别区域 + 版本（可据此对过旧客户端给出升级提示）。值由 CLI 自动注入，无需关心。
+CLI 是可灵后端 MCP server 的薄客户端：业务调用由 CLI 统一封装并发往后端 MCP 工具（传输与鉴权细节由 CLI 处理，无需关心）。本文档是工具协议速查；字段速查见 [`reference.md`](./reference.md)。
 
 ## 工具清单
 
@@ -16,6 +14,8 @@ CLI 是可灵后端 MCP server 的薄客户端：所有业务调用都是 MCP `t
 | 6 | `query_tasks` | 任务查询 | 同步 | 是 | 按 `generation_id` 查询生成状态与最终资源 URL |
 | 7 | `file_upload` | 文件上传 | 同步 | 是 | 申请一次性上传票据；文件字节由调用方自行上传（两步式，见下） |
 | 8 | `query_membership_and_credits` | 商业化 | 同步 | 是 | 查询会员身份与可用灵感值（身份取自 JWT，无参数） |
+
+> `kling <command> --help` 对上述 MCP-backed 命令会尽量实时读取该工具的 `tools/list` 声明（工具说明 + inputSchema）；完整模型清单与参数规格仍以 `who_am_i` 为准。示例：`kling image_to_image --help`。
 
 ## who_am_i
 
@@ -130,11 +130,32 @@ CLI 是可灵后端 MCP server 的薄客户端：所有业务调用都是 MCP `t
 
 > CLI 的 `account` 命令即此工具的直通调用。
 
-## 鉴权（OAuth，CLI `login` 已封装）
+## 工具发现（CLI `tool_list`）
 
-1. `GET {base}/.well-known/oauth-protected-resource` → `resource` + `authorization_servers[0]`（issuer）。
-2. `GET {origin}/.well-known/oauth-authorization-server{issuerPath}`（RFC 8414 path-insert）→ 端点 + `scopes_supported`。
-3. DCR `POST /auth/register`（公共 native client，`token_endpoint_auth_method: none`）。
-4. 浏览器 `GET /auth/authorize`（PKCE S256 + `resource` 参数）→ 回调 127.0.0.1 拿 code。
-5. `POST /auth/token`（form-urlencoded，**必须带与 authorize 一致的 `resource`**，否则 `invalid_target`）→ access/refresh token。
-6. 刷新：`grant_type=refresh_token`（同样带 `resource`）。
+用于查看后端 MCP server 当前实际暴露的工具元数据（`tools/list`），便于排障、确认灰度能力或读取工具 description 中的动态说明。
+
+```bash
+kling tool_list
+```
+
+返回示例：
+
+```json
+{
+  "ok": true,
+  "status": 200,
+  "body": {
+    "tools": [
+      {
+        "name": "text_to_image",
+        "description": "Submit text-to-image generation.",
+        "inputSchema": { "type": "object", "properties": { "prompt": { "type": "string" } } }
+      }
+    ]
+  }
+}
+```
+
+## 鉴权
+
+鉴权全程由 `kling login`（浏览器 OAuth）封装，token 由 CLI 自动管理与续期。获取凭据**只有 `kling login` 这一种合法方式**，Agent 无需也不应手工构造任何鉴权请求或读取凭据内容。

@@ -1,5 +1,6 @@
 ---
 name: kling-cli
+version: 0.1.1
 description: >-
   可灵 AI（Kling）官方 CLI 的使用技能：文生图 / 参考图生图 / 文生视频 / 图生视频。CLI 通过 MCP 服务与可灵交互：
   调用 text_to_image / image_to_image / text_to_video / image_to_video（模型与参数规格由 who_am_i 动态声明），
@@ -9,7 +10,9 @@ description: >-
   image generation、video generation、kling 命令、.credentials、
   国内站、海外站、global、海外版、区域、region、安装、install。
 requires: node>=18
-homepage: https://klingai.com
+# 可灵分中国区 / 非中国区，官网不同；skill 区域中立，按用户区域引用对应主页
+homepage_cn: https://klingai.com
+homepage_global: https://kling.ai
 ---
 
 # 可灵 AI 官方文生图 / 参考图生图 / 文生视频 / 图生视频
@@ -33,14 +36,14 @@ which kling   # 有输出路径 → 已安装，直接跳到登录；未找到 �
 
 ### 第 1 步：确认区域并安装（命令名统一为 `kling`）
 
-**区域如何确定**：本 skill 的首要消费者是非交互 Agent，**不得让 CLI 读 stdin 阻塞**。应**在对话里直接问用户**：「你的可灵账号是**国内站**（klingai.com）还是**海外站**（global）？」按回答选对应命令安装，**切勿默认、猜测或两个都装**。
+**区域如何确定**：本 skill 的首要消费者是非交互 Agent，**不得让 CLI 读 stdin 阻塞**。应**在对话里直接问用户**：「你的可灵账号是**中国区**（klingai.com）还是**非中国区**（kling.ai）？」按回答选对应命令安装，**切勿默认、猜测或两个都装**。
 
-| 用户区域 | 判断依据 | 安装命令 |
-|----------|----------|----------|
-| 国内站 | 账号登录 klingai.com（中国大陆） | `npm i -g @klingai/cli-cn --registry=https://registry.npmjs.org` |
-| 海外站 | 账号登录 global 站 | `npm i -g @klingai/cli-global --registry=https://registry.npmjs.org` |
+| 用户区域 | 官网（homepage） | 判断依据 | 安装命令 |
+|----------|------------------|----------|----------|
+| 中国区 | https://klingai.com | 账号登录 klingai.com（中国大陆） | `npm i -g @klingai/cli-cn --registry=https://registry.npmjs.org` |
+| 非中国区 | https://kling.ai | 账号登录 kling.ai（海外站 / global） | `npm i -g @klingai/cli-global --registry=https://registry.npmjs.org` |
 
-> 两个包发布到 npm 官方 registry。两个包的端点均在各自包内 `src/config.ts` 定稿，开箱即用、无需配置。
+> 两个包发布到 npm 官方 registry。各区域包的端点均已内置，开箱即用、无需配置。
 
 ### 第 2 步：登录（打开浏览器完成 OAuth 授权，这是获取凭据的唯一方式）
 
@@ -61,6 +64,30 @@ kling who_am_i
 
 ---
 
+## 保持最新（新会话首次交互时做一次自检，best-effort）
+
+> 仅在**新会话首次交互**顺带做一次，**不阻塞主任务**；更新会改动用户本地环境，**执行前先征得用户同意**，且**绝不在生成任务进行中途更新**。任一步失败（离线 / 无权限 / 网络异常）→ 静默跳过、继续主任务，不反复重试。
+
+1. **更新 skill 自身**：重新运行安装命令即可按内容哈希覆盖到最新（已是最新则无操作）：
+
+```bash
+npx skills add klingai-tech/skills
+```
+
+> 它覆盖的是磁盘上的 skill 文件，对**下一次会话**生效；当前会话已加载的内容不会因此热更新。
+
+2. **检查 CLI 是否有新版**（仅当本地已装 `kling`，即 `which kling` 有输出时）：
+
+```bash
+kling --version                                   # 当前已装版本
+npm view <区域包名> version                        # 最新发布版本（中国区 @klingai/cli-cn；非中国区 @klingai/cli-global）
+```
+
+   - 若最新版更高且**用户同意** → `npm i -g <区域包名>@latest --registry=https://registry.npmjs.org`。
+   - 升级是改全局环境的系统操作：**先说明、再征得同意**，不要擅自执行，也不要在一次生成流程中途打断去升级。
+
+---
+
 ## 唯一通道（Canonical Invocation）
 
 > **⚠️ 与可灵的一切交互必须且只能通过 `kling` CLI 命令完成。**
@@ -70,7 +97,6 @@ kling who_am_i
 
 ```bash
 kling <command> [args]
-# 在本 CLI 的源码仓库内开发时，等价写法：node --experimental-strip-types kling-cli/src/cli.ts <command> [args]
 ```
 
 人和 Agent 共用同一入口：TTY 下有交互引导，非 TTY 输出 JSON 且绝不阻塞提问。CLI 对鉴权、日志、错误处理做了统一封装。
@@ -79,7 +105,7 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 
 | # | 命令名 | 分组 | 同步性 | 触达下游 | 一句话说明 |
 |---|--------|------|--------|----------|------------|
-| 1 | `--help`（或不带参数） | 能力发现 | 同步 | 否 | 打印全部命令与用法；`<command> --help` 查看单命令参数（纯本地，不联网） |
+| 1 | `--help`（或不带参数） | 能力发现 | 同步 | 否 | 顶层 `kling --help` 纯本地打印全部命令；`<command> --help` 会尽量拉取该工具实时 `tools/list` 声明（需登录），离线/未登录时回退本地静态用法 |
 | 2 | `who_am_i` | 能力发现 | 同步 | 否 | 返回当前用户身份 + 每个生成命令的可用模型与参数规格；**首次调用先打它** |
 | 3 | `text_to_image <prompt>` | 生成 | **异步** | 是 | 文生图，返回 `generation_id`，需轮询 `query_tasks`（或加 `--poll` 一步出结果） |
 | 4 | `image_to_image --image <url\|path> <prompt>` | 生成 | **异步** | 是 | 参考图 + prompt 生新图，返回 `generation_id`（本地图片自动上传） |
@@ -88,10 +114,11 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 | 7 | `query_tasks <generationId>` | 任务查询 | 同步 | 是 | 按 `generation_id` 查询生成状态与最终资源 URL（`works[].url`） |
 | 8 | `file_upload <filePath>` | 文件上传 | 同步 | 是 | 两步式上传（申请一次性票据 + 上传文件字节），返回公网 URL |
 | 9 | `account` | 商业化 | 同步 | 是 | 会员类型 + 可用灵感值（`query_membership_and_credits`，身份取自 JWT） |
-| 10 | `login` | 鉴权 | 同步 | 否（仅 OAuth 服务） | 浏览器 OAuth 登录（DCR + PKCE），token 写入本地 `.credentials` |
-| 11 | `logout` | 鉴权 | 同步 | 否（仅 OAuth 服务） | 吊销（尽力）并清除本地登录态，保留已注册的 client id |
+| 10 | `tool_list` | 能力发现 | 同步 | 否 | 列出后端 MCP server 当前暴露的工具（MCP `tools/list`）：每个工具的 name / description / inputSchema（排障 / 确认服务端实际提供哪些 tools 用） |
+| 11 | `login` | 鉴权 | 同步 | 否（仅 OAuth 服务） | 浏览器 OAuth 登录（DCR + PKCE），token 写入本地 `.credentials` |
+| 12 | `logout` | 鉴权 | 同步 | 否（仅 OAuth 服务） | 吊销（尽力）并清除当前端点的本地登录态 |
 
-> **端点已内置**：包内 `src/config.ts` 的 `DEFAULT_BASE_URL` 是端点的**唯一来源**，发布时定稿、开箱即用、无需配置；**没有任何外部覆盖口子**（无 `KLING_BASE_URL` 环境变量、无 `.env`），也没有 config 命令。换端点只能改 `src/config.ts` 后重新发布。
+> **端点已内置**：对应区域包安装后开箱即用、无需配置；**不存在任何外部配置口子**（无环境变量、无 `.env`、无 config 命令），也不要尝试探测或指定其他可灵接口地址。
 
 > **没有别名**：一个命令一个名字，旧形态（`image generate`、`text2image` 等）不再受支持，必须使用上述 canonical 命令。
 
@@ -99,10 +126,33 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 
 ---
 
+## 推荐用法（最佳实践，Agent 须遵循）
+
+> 目标：少试错、不浪费灵感值、参数永远以服务端为准。
+
+> **新会话首次交互**：可先按「保持最新」一节做一次 best-effort 自检（更新 skill / 看 CLI 是否有新版），不打断主任务、更新前先征得用户同意。
+
+**最简三步**：① `kling login` 登录 → ② `kling who_am_i`（按需 `kling tool_list`）看能力 → ③ `kling <command>` 执行（生成命令必须带 `--model` 或 `--omni`）。
+
+1. **新会话先 `kling who_am_i`**：一次拿到身份 + 每个生成命令的可用模型与参数规格（必填 / 默认值 / 值域）。后续选模型、配参数都以它为准。
+2. **不清楚服务端提供哪些能力时用 `kling tool_list`**：列出后端 MCP server 当前真实暴露的工具（`tools/list`）。适合排障、确认某能力是否上线，**需已登录、不扣费**。
+3. **查某个命令怎么传参用 `kling <command> --help`**：会实时拉取该工具的 `tools/list` 声明（工具说明 + inputSchema）；离线 / 未登录时回退本地静态用法。完整模型与参数仍以 `who_am_i` 为准。
+4. **生成必须显式选模型**：`text_to_image` / `image_to_image` / `text_to_video` / `image_to_video` 必须带 `--model <名称>`（取自 `who_am_i`），或在用户明确要 omni 时带 `--omni`。**CLI 不会替用户自动选默认模型**，缺失会在扣费前报错。
+5. **图生类直接传本地路径**：`image_to_image` / `image_to_video` 的 `--image`（及 `--tailImage`）可传本地路径或公网 URL，本地文件由 CLI 自动 `file_upload`，无需手动两步上传。
+6. **提交后立即反馈再轮询**：从响应取 `generation_id` 与 `credits_consumed` 先告知用户；再用 `kling query_tasks <generationId>` 轮询，或提交时加 `--poll [N]` 一步出结果（裸 `--poll` 默认 60s）。
+7. **结果在 `works[].url`**：完成后提取并展示；用户要无水印时用 `works[].url_without_watermark`。
+8. **余额 / 会员看 `account`**：余额不足时展示服务端动态返回的充值链接（勿写死）。
+9. **失败不自动改参重投**：参数类报错先对照 `who_am_i` 把正确写法告诉用户，经确认再重试；不得静默改 prompt / 换模型 / 增删图后自行重投。
+
+典型顺序：`who_am_i` →（按需 `tool_list` / `<command> --help`）→ `text_to_*` / `image_to_*` 带 `--model` 提交 → `query_tasks` 轮询 → 展示 `works[].url`。
+
+---
+
 ## 模型与参数：以 who_am_i 为准（核心心智）
 
 - **模型清单与参数规格完全由服务端配置**：`who_am_i` 返回 `available_models`（工具名 → 模型 → arguments/inputs 规格，含必填、默认值、值域）。
-- 生成命令**不传 `--model` 时自动用服务端的第一个模型**；`--omni` 选 omni 系模型；`--model <名称>` 显式指定（不在清单内会报错并列出可用模型）。
+- **单命令帮助会优先读取实时声明**：对 `who_am_i` / 生成 / 查询 / 上传 / 账户等 MCP-backed 命令，`kling <command> --help` 会尽量拉取该工具的 `tools/list` 声明（工具说明 + inputSchema）；离线或未登录时回退本地静态用法。完整模型清单与参数规格仍以 `who_am_i` 为准。
+- 生成命令必须显式选择模型：传 `--model <名称>`（可用值来自 `who_am_i`），或在用户明确要求 omni 时传 `--omni`；CLI 不会替用户自动选择默认模型。
 - CLI 的便捷 flag（`--imgResolution`、`--aspectRatio`、`--imageCount`、`--duration` 等）会映射为协议参数名透传；**未提供的参数由服务端回填默认值**。
 - 参数校验（必填、值域、未声明参数）由服务端在**扣费前**完成，报错信息会列出问题项；遇到参数类报错应把服务端信息翻译给用户。
 
@@ -117,7 +167,7 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 | 参考图生图 / 带参考图 | `image_to_image` | `--image` 可重复，提交后轮询 |
 | 生成视频 / 文生视频 | `text_to_video` | 提交后轮询 |
 | 图生视频 / 让图动起来 | `image_to_video` | `--image` 必填，提交后轮询 |
-| 明确要求 omni | 生成命令加 `--omni` | 未明确提到 omni 时不加 |
+| 明确要求 omni | 生成命令加 `--omni` | `--omni` 是显式模型选择；未明确提到 omni 时不加 |
 | 上传本地素材 | `file_upload` | 两步式：取票据 + 上传，返回公网 URL |
 | 查会员 / 账户身份 / 查余额 | `account` | 返回 user_id + membership + 可用灵感值（直接展示） |
 | 充值 / 余额不足 / 开通会员 | `account` | 展示服务端返回的充值/会员链接（**动态取自 MCP，勿写死**，见「余额不足与充值」） |
@@ -141,8 +191,8 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 
 ## 前置条件
 
-- **Node.js 22+**。
-- **端点已内置，无需配置**：发布时在 `src/config.ts` 定稿 `DEFAULT_BASE_URL`，这是端点的唯一来源，**无外部覆盖口子**（无 `KLING_BASE_URL`、无 `.env`）。换端点须改 `src/config.ts` 后重新发布。
+- **Node.js 18+**（安装对应区域 npm 包后即可使用）。
+- **端点已内置，无需配置**：对应区域包安装后开箱即用；**无外部配置口子**（无环境变量、无 `.env`、无 config 命令），不要尝试配置或探测端点地址。
 - **登录态**：保存在用户目录 **`~/.kling/.credentials`**（与包目录无关，升级/重装 CLI 不丢登录态），按**端点 host** 分 section（如 `[klingai.com]`），含 `ACCESS_TOKEN` / `REFRESH_TOKEN` 等（OAuth：DCR + 授权码 + PKCE + RFC 8707 resource）。token 过期由 CLI 用 refresh token **自动静默续期**并回写文件。
 - **任何输出/回复中不要复述端点地址等环境信息**。
   - **唯一例外**：服务端主动返回的**面向用户的商业化链接**（会员订阅 / 充值入口），即使其 host 与端点相同，也**可以**原样展示给用户（见下「余额不足与充值」）。该链接**只能取自服务端动态返回的内容（MCP 工具的 description / 报错文本），严禁在本地写死 URL**。
@@ -154,7 +204,7 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 > - 所有命令的鉴权**必须且只能**依赖 `.credentials` 文件，由 CLI 自动读取；`kling login` 只输出成功确认，Agent 不得读取或展示 `.credentials` 内容。
 > - 凭据的获取方式见「安装与登录」一节的排他约束：`kling login` 是唯一合法途径，任何其他取凭据手段（Cookie / 抓包 / AK·SK / 用户粘贴 token）一律拒绝。
 
-- `.credentials` 缺当前端点登录态 → **先运行 `kling login`**（打开浏览器 OAuth 授权，回调本机 127.0.0.1 回环端口）。已有可用登录态时自动跳过。
+- `.credentials` 缺当前端点登录态 → **先运行 `kling login`**（打开浏览器 OAuth 授权，回调本机 127.0.0.1 回环端口）。`login` 每次都会先清除该端点旧登录态，再重新授权。
 - 命令返回鉴权错误（401 / token 失效且刷新失败）→ **重新运行 `kling login`**。
 - `login` 失败（浏览器未完成、超时 5 分钟、端口占用、网络异常）→ **告知用户具体原因**，勿反复无意义重试，**更不得改用其他登录手段**。
 
@@ -168,7 +218,7 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 
 ### 第 1 步：提交任务并立即反馈
 
-1. 用 `text_to_image` / `image_to_image` / `text_to_video` / `image_to_video` 提交。用户明确指定数量时加 `--imageCount N`；明确指定 omni 时加 `--omni`。
+1. 用 `text_to_image` / `image_to_image` / `text_to_video` / `image_to_video` 提交。每次提交都必须显式选择模型：用户明确指定 omni 时加 `--omni`，否则从 `who_am_i` 的可用模型中选择并加 `--model <名称>`；用户明确指定数量时加 `--imageCount N`。
    - `image_to_image` / `image_to_video` 需 `--image <url|path>`（可重复；本地文件自动走 `file_upload` 两步上传；公网 URL 直接透传）。
 2. 从响应中取 **`generation_id`**（一次提交对应一个 generation_id）和 `credits_consumed`。
 3. **立即告诉用户**：任务已提交，消耗多少灵感值，正在开始轮询。
@@ -242,21 +292,26 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 ## 命令行参考
 
 ```bash
+kling                                   # 不带参数 = 顶层 --help：命令总览 + 最简三步引导
+kling --help                            # 同上（纯本地，不联网）
+kling <command> --help                  # 单命令自检：尽量拉实时 tools/list 声明（需登录），离线/未登录回退本地用法
 kling login
 kling who_am_i
-kling text_to_image [--model M] [--omni] [--imageCount N] [--imgResolution 1k|2k] [--aspectRatio 1:1|...] [--poll N] "提示词"
-kling image_to_image [--model M] [--omni] --image <url|path> [--image ...] [--imageCount N] [--poll N] "提示词"
-kling text_to_video [--model M] [--omni] [--duration N] [--aspectRatio 16:9|...] [--poll N] "提示词"
-kling image_to_video [--model M] [--omni] --image <url|path> [--tailImage <url|path>] [--duration N] [--poll N] "提示词"
+kling tool_list                         # 列出服务端当前暴露的工具（需登录、不扣费）
+kling text_to_image (--model M | --omni) [--imageCount N] [--imgResolution 1k|2k] [--aspectRatio 1:1|...] [--poll N] "提示词"
+kling image_to_image (--model M | --omni) --image <url|path> [--image ...] [--imageCount N] [--poll N] "提示词"
+kling text_to_video (--model M | --omni) [--duration N] [--aspectRatio 16:9|...] [--poll N] "提示词"
+kling image_to_video (--model M | --omni) --image <url|path> [--tailImage <url|path>] [--duration N] [--poll N] "提示词"
 kling query_tasks [--poll N] <generationId>
 kling file_upload <filePath>
 kling account
+kling logout                            # 吊销并清除当前端点的本地登录态
 ```
 
-（在本 CLI 的源码仓库内开发时，把 `kling` 换成 `node --experimental-strip-types kling-cli/src/cli.ts` 即可，命令与参数完全相同。）
-
+- **自检优先**：拿不准某命令怎么传参时，先 `kling <command> --help`（实时 tools/list）；要全量模型/参数规格则 `kling who_am_i`；不确定服务端有哪些工具用 `kling tool_list`。
 - 各 flag 的**合法取值与默认值以 `who_am_i` 返回为准**；未提供的参数由服务端回填默认值。
 - 全局 flag：`--quiet`（紧凑单行 JSON）、`--help`、`--version`。
+- **可选遥测 flag**：任意命令可附带 `--skill-name kling-cli --skill-version <本 skill 版本>`（版本取自本文件 frontmatter 的 `version`，如 `0.1.1`）。仅用于服务端统计 skill 使用情况，**不影响任何功能、不参与鉴权/灰度**；不确定就不传。
 - 轮询时**必须使用 Shell 工具逐次调用** `query_tasks`，不要用后台进程或一次性脚本，否则无法中间反馈。
 
 ---
