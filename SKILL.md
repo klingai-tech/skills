@@ -1,11 +1,11 @@
 ---
 name: kling-cli
-version: 0.1.1
+version: 0.1.3
 description: >-
   可灵 AI（Kling）官方 CLI 的使用技能：文生图 / 参考图生图 / 文生视频 / 图生视频。CLI 通过 MCP 服务与可灵交互：
   调用 text_to_image / image_to_image / text_to_video / image_to_video（模型与参数规格由 who_am_i 动态声明），
-  返回 generation_id 后用 query_tasks 轮询，完成后提取 works[].url 展示给用户。命令无别名。
-  触发词：可灵、Kling、文生图、参考图生图、文生视频、图生视频、Omni、omni、MCP、generation_id、轮询、灵感值、
+  返回 generationId 后用 query_tasks 轮询，完成后提取 works[].url 展示给用户。命令无别名。
+  触发词：可灵、Kling、文生图、参考图生图、文生视频、图生视频、Omni、omni、MCP、generationId、generation_id、轮询、灵感值、
   text_to_image、image_to_image、text_to_video、image_to_video、query_tasks、who_am_i、file_upload、
   image generation、video generation、kling 命令、.credentials、
   国内站、海外站、global、海外版、区域、region、安装、install。
@@ -20,7 +20,64 @@ homepage_global: https://kling.ai
 ## 语言与回复风格
 
 - 面向用户的解释、确认、错误说明：**跟随用户语言**（中文用户用中文回复，英文用户用英文回复）。
-- 技术字段名（`generation_id`、`status`、`works[].url` 等）保留英文原样。
+- 技术字段名（`generationId`、`status`、`works[].url` 等）保留英文原样。**响应字段统一 camelCase**（如 `generationId` / `creditsConsumed` / `urlWithoutWatermark`）；旧版服务端可能仍返回 snake_case 同义字段（`generation_id` 等），按同一字段理解即可。
+
+---
+
+## 能力介绍（固定欢迎语，按需展示）
+
+**触发时机**（满足任一即展示，纯本地、不调用命令、不扣费）：
+
+1. 用户刚完成本 skill 或 CLI 的安装/登录，环境确认可用时；
+2. 用户询问可灵能做什么 / 有哪些能力 / 怎么用等**能力咨询类**意图（没有具体生成任务）时。
+
+**展示要求**（保留结构与 emoji，不增删条目、不自行改写含义）：
+
+- **中文用户**：原样输出中文版。
+- **非中文用户**：**必须翻译，不得输出中文版**——优先以英文版为底稿翻译成用户语言（日语用户给日语、西语用户给西语等，示例引语一并翻译）；无法可靠翻译的语种**至少原样输出英文版**。
+- 若环境尚未就绪（未安装 CLI 或未登录），把首行「可灵已就绪！/ Kling is ready!」换成对应语言的引导语（如「可灵还差一步就绪」/ "Kling is one step away"），并在文案后给出安装/登录下一步。
+
+中文版：
+
+```text
+可灵已就绪！
+
+你可以用可灵做这些事：
+
+📷 生成图片
+   · 文生图 — "帮我画一只赛博朋克风格的猫"
+   · 参考图生图 — "用这张图做参考，改成水彩风格"
+
+🎬 生成视频
+   · 文生视频 — "生成一段日落海边的 5 秒视频"
+   · 图生视频 — "让这张图动起来"
+
+📤 上传素材 — 本地图片可直接传，自动上传到可灵
+
+也可以结合 agent 及 skill 能力去实现一些复杂的创作流程。比如做个广告片、故事短片、批量创作一批素材等。
+```
+
+英文版（非中文用户的翻译底稿；英文用户直接原样输出此版）：
+
+```text
+Kling is ready!
+
+Here's what you can do with Kling:
+
+📷 Generate images
+   · Text to image — "Draw me a cyberpunk-style cat"
+   · Image to image — "Use this image as a reference and restyle it in watercolor"
+
+🎬 Generate videos
+   · Text to video — "Generate a 5-second video of a sunset over the sea"
+   · Image to video — "Bring this image to life"
+
+📤 Upload assets — local images work out of the box and are uploaded to Kling automatically
+
+You can also combine agent and skill capabilities to build more complex creative workflows — like making an ad spot, a short story film, or batch-producing a set of assets.
+```
+
+> 展示欢迎语本身不需要调用任何 `kling` 命令；若用户接着要精确的模型/参数清单，再走 `who_am_i`。
 
 ---
 
@@ -107,11 +164,11 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 |---|--------|------|--------|----------|------------|
 | 1 | `--help`（或不带参数） | 能力发现 | 同步 | 否 | 顶层 `kling --help` 纯本地打印全部命令；`<command> --help` 会尽量拉取该工具实时 `tools/list` 声明（需登录），离线/未登录时回退本地静态用法 |
 | 2 | `who_am_i` | 能力发现 | 同步 | 否 | 返回当前用户身份 + 每个生成命令的可用模型与参数规格；**首次调用先打它** |
-| 3 | `text_to_image <prompt>` | 生成 | **异步** | 是 | 文生图，返回 `generation_id`，需轮询 `query_tasks`（或加 `--poll` 一步出结果） |
-| 4 | `image_to_image --image <url\|path> <prompt>` | 生成 | **异步** | 是 | 参考图 + prompt 生新图，返回 `generation_id`（本地图片自动上传） |
-| 5 | `text_to_video <prompt>` | 生成 | **异步** | 是 | 文生视频，返回 `generation_id`，需轮询 `query_tasks` |
-| 6 | `image_to_video --image <url\|path> <prompt>` | 生成 | **异步** | 是 | 图生视频（让图动起来），返回 `generation_id` |
-| 7 | `query_tasks <generationId>` | 任务查询 | 同步 | 是 | 按 `generation_id` 查询生成状态与最终资源 URL（`works[].url`） |
+| 3 | `text_to_image <prompt>` | 生成 | **异步** | 是 | 文生图，返回 `generationId`，需轮询 `query_tasks`（或加 `--poll` 一步出结果） |
+| 4 | `image_to_image --image <url\|path> <prompt>` | 生成 | **异步** | 是 | 参考图 + prompt 生新图，返回 `generationId`（本地图片自动上传） |
+| 5 | `text_to_video <prompt>` | 生成 | **异步** | 是 | 文生视频，返回 `generationId`，需轮询 `query_tasks` |
+| 6 | `image_to_video --image <url\|path> <prompt>` | 生成 | **异步** | 是 | 图生视频（让图动起来），返回 `generationId` |
+| 7 | `query_tasks <generationId>` | 任务查询 | 同步 | 是 | 按 `generationId` 查询生成状态与最终资源 URL（`works[].url`） |
 | 8 | `file_upload <filePath>` | 文件上传 | 同步 | 是 | 两步式上传（申请一次性票据 + 上传文件字节），返回公网 URL |
 | 9 | `account` | 商业化 | 同步 | 是 | 会员类型 + 可用灵感值（`query_membership_and_credits`，身份取自 JWT） |
 | 10 | `tool_list` | 能力发现 | 同步 | 否 | 列出后端 MCP server 当前暴露的工具（MCP `tools/list`）：每个工具的 name / description / inputSchema（排障 / 确认服务端实际提供哪些 tools 用） |
@@ -138,9 +195,9 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 2. **不清楚服务端提供哪些能力时用 `kling tool_list`**：列出后端 MCP server 当前真实暴露的工具（`tools/list`）。适合排障、确认某能力是否上线，**需已登录、不扣费**。
 3. **查某个命令怎么传参用 `kling <command> --help`**：会实时拉取该工具的 `tools/list` 声明（工具说明 + inputSchema）；离线 / 未登录时回退本地静态用法。完整模型与参数仍以 `who_am_i` 为准。
 4. **生成必须显式选模型**：`text_to_image` / `image_to_image` / `text_to_video` / `image_to_video` 必须带 `--model <名称>`（取自 `who_am_i`），或在用户明确要 omni 时带 `--omni`。**CLI 不会替用户自动选默认模型**，缺失会在扣费前报错。
-5. **图生类直接传本地路径**：`image_to_image` / `image_to_video` 的 `--image`（及 `--tailImage`）可传本地路径或公网 URL，本地文件由 CLI 自动 `file_upload`，无需手动两步上传。
-6. **提交后立即反馈再轮询**：从响应取 `generation_id` 与 `credits_consumed` 先告知用户；再用 `kling query_tasks <generationId>` 轮询，或提交时加 `--poll [N]` 一步出结果（裸 `--poll` 默认 60s）。
-7. **结果在 `works[].url`**：完成后提取并展示；用户要无水印时用 `works[].url_without_watermark`。
+5. **图生类直接传本地路径或公网 URL**：`image_to_image` / `image_to_video` 的 `--image`（及 `--tailImage`）可传本地路径或公网 URL。本地文件由 CLI 自动 `file_upload`，无需手动上传；**公网 URL（外部 CDN / 外链，或此前可灵任务返回的 `works[].url`）直接透传给服务端，无需先下载、重新上传或本地校验**。参考图的格式 / 大小等限制以工具实时声明为准（`kling <command> --help` / `kling tool_list`）。
+6. **提交后立即反馈再轮询**：从响应取 `generationId` 与 `creditsConsumed` 先告知用户；再用 `kling query_tasks <generationId>` 轮询，或提交时加 `--poll [N]` 一步出结果（裸 `--poll` 默认 60s）。
+7. **结果在 `works[].url`**：完成后提取并展示；用户要无水印时用 `works[].urlWithoutWatermark`。
 8. **余额 / 会员看 `account`**：余额不足时展示服务端动态返回的充值链接（勿写死）。
 9. **失败不自动改参重投**：参数类报错先对照 `who_am_i` 把正确写法告诉用户，经确认再重试；不得静默改 prompt / 换模型 / 增删图后自行重投。
 
@@ -150,7 +207,7 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 
 ## 模型与参数：以 who_am_i 为准（核心心智）
 
-- **模型清单与参数规格完全由服务端配置**：`who_am_i` 返回 `available_models`（工具名 → 模型 → arguments/inputs 规格，含必填、默认值、值域）。
+- **模型清单与参数规格完全由服务端配置**：`who_am_i` 返回 `availableModels`（工具名 → 模型 → arguments/inputs 规格，含必填、默认值、值域）。
 - **单命令帮助会优先读取实时声明**：对 `who_am_i` / 生成 / 查询 / 上传 / 账户等 MCP-backed 命令，`kling <command> --help` 会尽量拉取该工具的 `tools/list` 声明（工具说明 + inputSchema）；离线或未登录时回退本地静态用法。完整模型清单与参数规格仍以 `who_am_i` 为准。
 - 生成命令必须显式选择模型：传 `--model <名称>`（可用值来自 `who_am_i`），或在用户明确要求 omni 时传 `--omni`；CLI 不会替用户自动选择默认模型。
 - CLI 的便捷 flag（`--imgResolution`、`--aspectRatio`、`--imageCount`、`--duration` 等）会映射为协议参数名透传；**未提供的参数由服务端回填默认值**。
@@ -162,14 +219,15 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 
 | 用户意图 | 命令 | 说明 |
 |----------|--------|------|
+| 问可灵能做什么 / 有哪些能力（无具体任务） | — | 展示「能力介绍」固定欢迎语（见上），纯本地不调命令 |
 | 查可用模型 / 参数规格 / 能力发现 | `who_am_i` | 新会话建议先调 |
 | 生成图片 / 出图 / 文生图 | `text_to_image` | 提交后轮询 `query_tasks` |
 | 参考图生图 / 带参考图 | `image_to_image` | `--image` 可重复，提交后轮询 |
 | 生成视频 / 文生视频 | `text_to_video` | 提交后轮询 |
 | 图生视频 / 让图动起来 | `image_to_video` | `--image` 必填，提交后轮询 |
 | 明确要求 omni | 生成命令加 `--omni` | `--omni` 是显式模型选择；未明确提到 omni 时不加 |
-| 上传本地素材 | `file_upload` | 两步式：取票据 + 上传，返回公网 URL |
-| 查会员 / 账户身份 / 查余额 | `account` | 返回 user_id + membership + 可用灵感值（直接展示） |
+| 上传本地素材 | `file_upload` | 仅本地文件需要上传（返回公网 URL）；已是公网 URL 的素材无需上传，直接作 `--image` 传给生成命令 |
+| 查会员 / 账户身份 / 查余额 | `account` | 返回 userId + membership + 可用灵感值（直接展示） |
 | 充值 / 余额不足 / 开通会员 | `account` | 展示服务端返回的充值/会员链接（**动态取自 MCP，勿写死**，见「余额不足与充值」） |
 | 仅说「用可灵生成」等模糊意图 | — | **先问清是图还是视频，再提交** |
 
@@ -179,12 +237,12 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 
 ## 计费、提交与重试纪律
 
-> **每次提交（text_to_image / image_to_image / text_to_video / image_to_video）均会扣费（消耗灵感值）**；提交响应中的 `credits_consumed` 为本次消耗，直接展示即可。
+> **每次提交（text_to_image / image_to_image / text_to_video / image_to_video）均会扣费（消耗灵感值）**；提交响应中的 `creditsConsumed` 为本次消耗，直接展示即可。
 
 1. **意图不清先确认**：不确定用户要图还是视频时，先问再提交。
 2. **禁止自动改 prompt 重投**：任务失败或超时，**不要**自行修改 prompt 重新提交。必须先告知用户失败原因，获得明确同意后才可重试。
 3. **重试需用户授权**：轮询超时、状态异常、内容被拦截等情况，向用户说明后询问「继续等待 / 重试 / 放弃」，不得静默重投或静默结束。
-4. **不得捏造接口与参数**：模型名、参数名、取值一律以 `who_am_i` 声明为准，禁止猜测、虚构或沿用其他产品的参数；`generation_id` 只能用提交真实返回的值。
+4. **不得捏造接口与参数**：模型名、参数名、取值一律以 `who_am_i` 声明为准，禁止猜测、虚构或沿用其他产品的参数；`generationId` 只能用提交真实返回的值。
 5. **参数错误不扣费**：服务端在转发下游前做参数校验，校验类报错可在修正参数后重试（这是无需用户重新授权的唯一重试场景）。但**修正参数本身需用户确认**：Agent 把依 `who_am_i` 得出的正确写法提示给用户，不得静默改写用户意图后自行重投（详见「错误与边界处理」）。
 
 ---
@@ -219,15 +277,15 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 ### 第 1 步：提交任务并立即反馈
 
 1. 用 `text_to_image` / `image_to_image` / `text_to_video` / `image_to_video` 提交。每次提交都必须显式选择模型：用户明确指定 omni 时加 `--omni`，否则从 `who_am_i` 的可用模型中选择并加 `--model <名称>`；用户明确指定数量时加 `--imageCount N`。
-   - `image_to_image` / `image_to_video` 需 `--image <url|path>`（可重复；本地文件自动走 `file_upload` 两步上传；公网 URL 直接透传）。
-2. 从响应中取 **`generation_id`**（一次提交对应一个 generation_id）和 `credits_consumed`。
+   - `image_to_image` / `image_to_video` 需 `--image <url|path>`（可重复；本地文件自动走 `file_upload` 两步上传；公网 URL——含外部 CDN 链接与此前任务返回的 `works[].url`——直接透传，无需下载或重新上传）。
+2. 从响应中取 **`generationId`**（一次提交对应一个 generationId）和 `creditsConsumed`。
 3. **立即告诉用户**：任务已提交，消耗多少灵感值，正在开始轮询。
 
 > **可选一步出结果**：提交命令支持 `--poll N`（裸写 `--poll` 默认 60s），提交后内联轮询直接返回终态结果（含 `works[].url`），适合非交互/批处理。**交互式实时反馈场景仍优先用第 2 步逐次查询**。
 
 ### 第 2 步：逐次轮询并实时报告状态变化
 
-用 `query_tasks <generationId>` 逐次查询（**必须使用提交返回的 generation_id**，不得捏造）：
+用 `query_tasks <generationId>` 逐次查询（**必须使用提交返回的 generationId**，不得捏造）：
 
 1. 读取返回的 `status`（下游透传字符串，**实测为大写**，如 `QUEUING` / `RUNNING` / `COMPLETED`；协议文档示例为小写 `submitted` / `succeed`——两种都可能出现，按**大小写不敏感**处理）：
    - `QUEUING` / `submitted` → 告诉用户："排队中，请稍候…"
@@ -240,9 +298,9 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 ### 第 3 步：结果展示
 
 - 结果在 `works[]` 中：
-  - **默认（带水印）**：`works[].url`（资源）、`works[].cover_url`（封面）。
-  - **用户明确要求无水印**：`works[].url_without_watermark`、`works[].cover_url_without_watermark`。
-  - `works[].content_type`：`image` / `video`。
+  - **默认（带水印）**：`works[].url`（资源）、`works[].coverUrl`（封面）。
+  - **用户明确要求无水印**：`works[].urlWithoutWatermark`、`works[].coverUrlWithoutWatermark`。
+  - `works[].contentType`：`image` / `video`。
 - **图片**：用 `![描述](url)` 内联展示；**无论是否渲染成功，必须同时附上可点击的原始链接**。
 - **视频**：尝试 `<video src="url" controls></video>` 内联播放；**必须同时附上可点击链接**。
 - **核心原则：资源链接必须明文输出给用户**（部分环境不支持内联渲染）。
@@ -278,8 +336,8 @@ canonical 命令与可灵后端 **MCP 工具名 1:1（snake_case）**。`<comman
 
 1. MCP 工具的错误以 `ok: false` + 错误文本返回；参数校验类错误会**一次性列出所有问题项**（缺失必填、值域不符、未声明参数、模型不在清单等）。
 2. 模型相关报错（如 model 不合法）→ 先 `who_am_i` 查可用模型再修正。
-3. `query_tasks` 报 `Generation not found` → generation_id 错误或非本人，核对后重试，**不得捏造 generation_id**。
-4. 响应缺少 `generation_id` → 提交可能未成功，向用户说明，不得编造。
+3. `query_tasks` 报 `Generation not found` → generationId 错误或非本人，核对后重试，**不得捏造 generationId**。
+4. 响应缺少 `generationId` → 提交可能未成功，向用户说明，不得编造。
 5. **遇到笼统报错（如「服务暂时不可用」「非法参数，请拉取最新 who_am_i」等被吞掉真实原因的提交失败）→ 先看 CLI 打到 stderr 的 `who_am_i` 输入/参数声明**，对照核对**参考图数量与配对**（例如多参考模型 `kling-image-v2_1-multi-ref` 要求至少 2 张「不同」参考图，且每个 `subject_image_N` 必须配同 URL 的 `raw_subject_image_N`；`raw` 副本不算作额外参考）。**这是参数校验类失败、不扣费**。
    - ⚠️ **不得主动替用户改参数/换模型/增删图后重投**：应把**修正后的正确命令写法**（依 `who_am_i` 声明）提示给用户，说明原因，由**用户确认**后再执行。绝不静默改写用户意图。
 
@@ -311,7 +369,11 @@ kling logout                            # 吊销并清除当前端点的本地�
 - **自检优先**：拿不准某命令怎么传参时，先 `kling <command> --help`（实时 tools/list）；要全量模型/参数规格则 `kling who_am_i`；不确定服务端有哪些工具用 `kling tool_list`。
 - 各 flag 的**合法取值与默认值以 `who_am_i` 返回为准**；未提供的参数由服务端回填默认值。
 - 全局 flag：`--quiet`（紧凑单行 JSON）、`--help`、`--version`。
-- **可选遥测 flag**：任意命令可附带 `--skill-name kling-cli --skill-version <本 skill 版本>`（版本取自本文件 frontmatter 的 `version`，如 `0.1.1`）。仅用于服务端统计 skill 使用情况，**不影响任何功能、不参与鉴权/灰度**；不确定就不传。
+- **遥测 flag（通过本 skill 调用时，每条 `kling` 命令都应附带）**：`--skill-name kling-cli --skill-version <本 skill 版本>`（版本取自本文件 frontmatter 的 `version`，如 `0.1.2`）。纯遥测：除服务端统计 skill 使用情况外，`kling login` 时它还决定 OAuth 注册上报的 `client_name` 后缀（带 flag → `<运行时>_skill`，如 `cursor_skill`；不带 → `<运行时>_cli`），用于区分「skill 驱动」与「用户直接使用 CLI」。**不影响任何功能、不参与鉴权/灰度**，缺失也不报错。
+- **追踪参数 `taskTraceId` / `rationale`（面向 Agent，纯埋点、不影响任何功能，也不在 CLI `--help` 中展示）**：
+  - **先读服务端声明再传参**：这两个参数由服务端在 `tool_list` 各工具的 inputSchema 中声明（`<command> --help` 也会带出实时声明）。Agent 传参前应**仔细读一遍 `kling tool_list`**，确认工具当前支持的参数（含这两个追踪参数）后再组装 CLI 命令，不要凭记忆传。
+  - `--task-trace-id <id>`：把**同一用户任务**下逻辑连续的多条命令归并到同一链路（如「先生成图、再把图转成视频」的 `text_to_image` → `image_to_video` → `query_tasks` 全程复用同一个 ID）。Agent 应在任务开始时生成一个 32 位字母数字 ID 并在该任务的每条 `kling` 命令上传同一个值；用户切到不相关的新任务时换一个全新 ID。不传时 CLI 会**静默生成**一个 32 位字母数字 ID（单条命令内部的上传/提交/轮询仍归并），但**跨命令链路**只有显式传值才能串起来。
+  - `--rationale "<一句英文说明>"`（仅 4 个生成命令）：说明本次调用的核心目的与参数选择理由（如 "User uploaded a personal artwork and asked for a short animated clip; 4K per explicit user demand"）。不传时 CLI 自动传空串；不透传下游、不参与校验。
 - 轮询时**必须使用 Shell 工具逐次调用** `query_tasks`，不要用后台进程或一次性脚本，否则无法中间反馈。
 
 ---

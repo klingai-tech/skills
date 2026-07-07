@@ -2,42 +2,46 @@
 
 完整协议与示例见同目录 **`api-examples.md`**。CLI 返回 `{ ok, status, body }`，`body` 为工具结果（已自动解析 JSON 文本块）。
 
+> 响应字段统一 **camelCase**（服务端契约）；旧版服务端可能仍返回 snake_case 同义字段（如 `generation_id`），CLI 两种都能解析，Agent 读取输出时按同一字段理解。
+
 `kling <command> --help` 对 MCP-backed 命令会尽量展示该工具的实时 `tools/list` 声明（工具说明 + inputSchema）；获取失败时回退本地静态用法。完整模型清单与参数规格见下方 `who_am_i`。
 
 ## who_am_i（能力发现）
 
-- **`user.user_id`**：当前用户 ID（来自 JWT）。
-- **`available_models`**：工具名 → 模型能力清单；空 `{}` 表示服务端尚未配置。
+- **`user.userId`**：当前用户 ID（来自 JWT）。
+- **`availableModels`**：工具名 → 模型能力清单；空 `{}` 表示服务端尚未配置。
   - **`[].model`**：模型名（生成命令 `--model` 的合法取值）。
-  - **`[].arguments[]`**：`{ name, required, default?, allowed_values?, description? }`。
+  - **`[].alias`**：对外别名（可能不出现）。
+  - **`[].description`**：模型说明，**Agent 选型的主要依据**（适用场景、是否推荐等；可能不出现）。
+  - **`[].arguments[]`**：`{ name, required, default?, allowedValues?, description? }`。
   - **`[].inputs[]`**：`{ name, required, description? }`（参考资源声明）。
-- **`auth_mode`**：鉴权模式（OAuth 登录态下为 `oauth`）。
+- **`authMode`**：鉴权模式（OAuth 登录态下为 `oauth`）。
 
 ## 生成工具提交成功后（text_to_image / image_to_image / text_to_video / image_to_video）
 
-- **`generation_id`**：不透明生成 ID，用于 `query_tasks` 轮询。
+- **`generationId`**：不透明生成 ID，用于 `query_tasks` 轮询。
 - **`status`**：初始状态（下游透传，如 `submitted` / `QUEUING`）。
-- **`credits_consumed`**：本次消耗的灵感值（可能不出现）。
+- **`creditsConsumed`**：本次消耗的灵感值（可能不出现）。
 
 ## query_tasks
 
-- **`generation_id`**：回显查询 ID。
+- **`generationId`**：回显查询 ID。
 - **`status`**：任务整体状态（下游透传字符串，**大小写不敏感处理**）：
   - 中间态：`QUEUING` / `RUNNING` / `submitted` / `processing`
   - 成功终态：`COMPLETED` / `PARTIAL_COMPLETED` / `succeed`
   - 失败终态：`FAILED` / `CANCELLED` 等
-- **`create_time`** / **`finish_time`**：毫秒时间戳（未完成时 finish_time 为 0）。
+- **`createTime`** / **`finishTime`**：毫秒时间戳（未完成时 finishTime 为 0）。
 - **`works[]`**：产出列表：
   - **`status`**：单个产出状态。
-  - **`content_type`**：`image` / `video`。
+  - **`contentType`**：`image` / `video`。
   - **`url`**：资源 URL（带水印，默认展示）。
-  - **`url_without_watermark`**：无水印资源 URL（用户要求时展示）。
-  - **`cover_url`** / **`cover_url_without_watermark`**：封面 URL。
+  - **`urlWithoutWatermark`**：无水印资源 URL（用户要求时展示）。
+  - **`coverUrl`** / **`coverUrlWithoutWatermark`**：封面 URL。
 
 ## file_upload（两步式）
 
-- 第一步（MCP 工具）返回：**`ticket`**（一次性票据）、**`upload_url`**（上传地址）、**`expire_at`**（过期时间戳）。
-- 第二步由 CLI 自动完成：multipart POST（`ticket` + `file`）到 `upload_url`，CLI 会把响应中的文件 URL 规整到 `body.url`。
+- 第一步（MCP 工具）返回：**`ticket`**（一次性票据）、**`uploadUrl`**（上传地址）、**`expireAt`**（过期时间戳）。
+- 第二步由 CLI 自动完成：multipart POST（`ticket` + `file`）到 `uploadUrl`，CLI 会把响应中的文件 URL 规整到 `body.url`。
 
 ## account（query_membership_and_credits 直通）
 

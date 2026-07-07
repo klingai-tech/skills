@@ -7,11 +7,11 @@ CLI 是可灵后端 MCP server 的薄客户端：业务调用由 CLI 统一封�
 | # | 工具名 | 分组 | 同步性 | 触达下游 | 一句话说明 |
 |---|--------|------|--------|----------|------------|
 | 1 | `who_am_i` | 能力发现 | 同步 | 否 | 身份 + 各生成工具可用模型与参数规格；**新会话先调** |
-| 2 | `text_to_image` | 生成 | **异步** | 是 | 文生图，返回 `generation_id`，需轮询 `query_tasks` |
-| 3 | `image_to_image` | 生成 | **异步** | 是 | 参考图 + prompt 生图（需 inputs），返回 `generation_id` |
-| 4 | `text_to_video` | 生成 | **异步** | 是 | 文生视频，返回 `generation_id`，需轮询 `query_tasks` |
-| 5 | `image_to_video` | 生成 | **异步** | 是 | 图生视频（需 inputs），返回 `generation_id` |
-| 6 | `query_tasks` | 任务查询 | 同步 | 是 | 按 `generation_id` 查询生成状态与最终资源 URL |
+| 2 | `text_to_image` | 生成 | **异步** | 是 | 文生图，返回 `generationId`，需轮询 `query_tasks` |
+| 3 | `image_to_image` | 生成 | **异步** | 是 | 参考图 + prompt 生图（需 inputs），返回 `generationId` |
+| 4 | `text_to_video` | 生成 | **异步** | 是 | 文生视频，返回 `generationId`，需轮询 `query_tasks` |
+| 5 | `image_to_video` | 生成 | **异步** | 是 | 图生视频（需 inputs），返回 `generationId` |
+| 6 | `query_tasks` | 任务查询 | 同步 | 是 | 按 `generationId` 查询生成状态与最终资源 URL |
 | 7 | `file_upload` | 文件上传 | 同步 | 是 | 申请一次性上传票据；文件字节由调用方自行上传（两步式，见下） |
 | 8 | `query_membership_and_credits` | 商业化 | 同步 | 是 | 查询会员身份与可用灵感值（身份取自 JWT，无参数） |
 
@@ -23,8 +23,8 @@ CLI 是可灵后端 MCP server 的薄客户端：业务调用由 CLI 统一封�
 
 ```json
 {
-  "user": { "user_id": 10000001 },
-  "available_models": {
+  "user": { "userId": 10000001 },
+  "availableModels": {
     "text_to_image": [
       {
         "model": "kling-image-v3_0",
@@ -39,12 +39,12 @@ CLI 是可灵后端 MCP server 的薄客户端：业务调用由 CLI 统一封�
       }
     ]
   },
-  "auth_mode": "oauth"
+  "authMode": "oauth"
 }
 ```
 
 - 模型名、参数、默认值均以**运行时返回**为准（服务端配置）。
-- `arguments[]`：`required` 必填恒无默认值；`allowed_values` 不出现表示不限制；选填缺省时服务端回填 `default`。
+- `arguments[]`：`required` 必填恒无默认值；`allowedValues` 不出现表示不限制；选填缺省时服务端回填 `default`。
 
 ## 生成类工具通用协议
 
@@ -65,7 +65,8 @@ CLI 是可灵后端 MCP server 的薄客户端：业务调用由 CLI 统一封�
 
 - `model` 必填，必须来自 who_am_i 该工具的清单。
 - `arguments[].value` **一律为字符串**；省略选填项由服务端回填默认值。
-- `inputs[].inputType` 当前仅 `"URL"`；`url` 须公网可访问（本地文件先 `file_upload`）。`text_to_*` 通常无 inputs。
+- `inputs[].inputType` 当前仅 `"URL"`；`url` 须公网可访问：外部公网 URL（CDN / 外链、此前任务返回的 `works[].url`）直接使用，本地文件先 `file_upload` 换取 URL。`text_to_*` 通常无 inputs。
+- 可选追踪参数（纯埋点、不参与校验、不透传下游；以 `tool_list` 的 inputSchema 声明为准）：`taskTraceId`（全部工具；CLI 全局 flag `--task-trace-id`，同一任务链复用同一 ID，不传时 CLI 静默生成 32 位字母数字 ID）、`rationale`（仅 4 个生成工具；CLI flag `--rationale`，说明创作意图与参数理由，不传时 CLI 自动传空串）。
 
 服务端在转发下游（扣费）前做本地校验，任一不过即报参数错误（**聚合列出所有问题项**）：model 在清单内、argument 名非空/不重复/已声明、必填不缺、值域命中、inputs 同理。
 
@@ -73,38 +74,38 @@ CLI 是可灵后端 MCP server 的薄客户端：业务调用由 CLI 统一封�
 
 ```json
 {
-  "generation_id": "Qk1Zb3VyT3BhcXVlR2VuZXJhdGlvbklkRXhhbXBsZQ",
+  "generationId": "Qk1Zb3VyT3BhcXVlR2VuZXJhdGlvbklkRXhhbXBsZQ",
   "status": "submitted",
-  "credits_consumed": 10,
-  "message": "Generation submitted. Poll query_tasks with this generation_id to get the result."
+  "creditsConsumed": 10,
+  "message": "Generation submitted. Poll query_tasks with this generationId to get the result."
 }
 ```
 
 ## query_tasks
 
-请求：`{ "generationId": "<generation_id 原值>" }`。返回（已完成，实测状态为大写）：
+请求：`{ "generationId": "<generationId 原值>" }`。返回（已完成，实测状态为大写）：
 
 ```json
 {
-  "generation_id": "AIUbOyYx...",
+  "generationId": "AIUbOyYx...",
   "status": "COMPLETED",
-  "create_time": 1781164986117,
-  "finish_time": 1781165014373,
+  "createTime": 1781164986117,
+  "finishTime": 1781165014373,
   "works": [
     {
       "status": "COMPLETED",
-      "content_type": "image",
+      "contentType": "image",
       "url": "https://cdn.example.com/.../out.png",
-      "url_without_watermark": "https://.../out_clean.png",
-      "cover_url": "https://.../cover.jpg",
-      "cover_url_without_watermark": "https://.../cover_clean.jpg"
+      "urlWithoutWatermark": "https://.../out_clean.png",
+      "coverUrl": "https://.../cover.jpg",
+      "coverUrlWithoutWatermark": "https://.../cover_clean.jpg"
     }
   ]
 }
 ```
 
 - `status` 为下游透传字符串，**按大小写不敏感处理**；中间态 `QUEUING`/`RUNNING`/`submitted`/`processing`，成功 `COMPLETED`/`PARTIAL_COMPLETED`/`succeed`。
-- `generation_id` 非法或非本人 → `Generation not found. Please verify the generation_id.`
+- `generationId` 非法或非本人 → `Generation not found. Please verify the generationId.`
 
 ## file_upload（两步式）
 
@@ -114,9 +115,9 @@ CLI 是可灵后端 MCP server 的薄客户端：业务调用由 CLI 统一封�
 { "filename": "photo.png", "contentType": "image/png", "size": 102400 }
 ```
 
-返回 `{ "ticket": "...", "upload_url": "...", "expire_at": 1733900000 }`。
+返回 `{ "ticket": "...", "uploadUrl": "...", "expireAt": 1733900000 }`。
 
-第二步（调用方自行执行，CLI 已封装）：向 `upload_url` 发 `multipart/form-data` POST，字段 `ticket`（票据）+ `file`（文件字节）。上传响应含文件 URL，可作为 `inputs[].url`。票据单次有效、过期作废。
+第二步（调用方自行执行，CLI 已封装）：向 `uploadUrl` 发 `multipart/form-data` POST，字段 `ticket`（票据）+ `file`（文件字节）。上传响应含文件 URL，可作为 `inputs[].url`。票据单次有效、过期作废。
 
 ## query_membership_and_credits
 
