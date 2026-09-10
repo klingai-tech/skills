@@ -17,7 +17,9 @@
   - **`[].inputs[]`**：`{ name, required, description? }`（参考资源声明）。
 - **`authMode`**：鉴权模式（OAuth 登录态下为 `oauth`）。
 
-## 生成工具提交成功后（text_to_image / image_to_image / text_to_video / image_to_video）
+## 异步生成工具提交成功后（text_to_image / image_to_image / text_to_video / image_to_video / motion_control）
+
+主体库（`element_*`）为同步操作，响应见下方「主体库（Element 工具）」；创建主体返回持久主体 `id`，不使用 `generationId` 或 `query_tasks` 轮询。
 
 - **`generationId`**：不透明生成 ID，用于 `query_tasks` 轮询。
 - **`status`**：初始状态（下游透传，如 `submitted` / `QUEUING`）。
@@ -42,6 +44,28 @@
 
 - 第一步（MCP 工具）返回：**`ticket`**（一次性票据）、**`uploadUrl`**（上传地址）、**`expireAt`**（过期时间戳）。
 - 第二步由 CLI 自动完成：multipart POST（`ticket` + `file`）到 `uploadUrl`，CLI 会把响应中的文件 URL 规整到 `body.url`。
+
+## 主体库（Element 工具）
+
+- **`element_create`**：返回持久 Element `id`；图片资源为 `cover` + 1–3 个 `secondary[]`，视频资源为 `video`，两者可选 `voice`。
+- **`element_list`**：每项仅含 `id` / `name`；完整类型与资源需再调 `element_get`。
+- **`element_get`**：返回完整 `name` / `description` / `resource` / `tags`。
+- **`element_update`**：CLI 先读取现有 Element，再把用户提供的可选字段合并成完整 payload；图片 Element 强制回填原 `resource.cover`，不接受 `--cover`。
+- **`element_delete`**：按 `id` 删除持久 Element。
+
+## motion_library_list / motion_control
+
+- **`motion_library_list`**：每项含 `id`、`name`、动作 URL、可选封面、毫秒时长和是否含音频。
+- **`motion_control`**：返回与其他生成工具相同的 `generationId` / `status` / `creditsConsumed`，后续用 `query_tasks`。
+
+## feedback
+
+- 返回服务端确认信息；该工具只记录反馈，不会重试、退款或修复原任务。
+- 请求的 `extra` 可携带关联的 `generationId[]` / `modelVersion[]` / `taskTraceId[]`，分别来自可重复的 `--generationId` / `--modelVersion` / `--relatedTaskTraceId`；不假定服务端响应会回显这些字段。
+
+## logout
+
+- 先调用服务端 MCP `logout`；成功后清除本地登录态。服务端失败时保留本地登录态并返回错误，不继续登录。
 
 ## account（query_membership_and_credits 直通）
 

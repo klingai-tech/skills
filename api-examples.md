@@ -13,9 +13,15 @@ CLI 是可灵后端 MCP server 的薄客户端：业务调用由 CLI 统一封�
 | 5 | `image_to_video` | 生成 | **异步** | 是 | 图生视频（需 inputs），返回 `generationId` |
 | 6 | `query_tasks` | 任务查询 | 同步 | 是 | 按 `generationId` 查询生成状态与最终资源 URL |
 | 7 | `file_upload` | 文件上传 | 同步 | 是 | 申请一次性上传票据；文件字节由调用方自行上传（两步式，见下） |
-| 8 | `query_membership_and_credits` | 商业化 | 同步 | 是 | 查询会员身份与可用灵感值（身份取自 JWT，无参数） |
+| 8 | `element_create` / `element_list` / `element_get` / `element_update` / `element_delete` | 主体素材 | 同步 | 是 | 可复用 Element 的完整生命周期 |
+| 9 | `motion_library_list` | 动作素材 | 同步 | 是 | 列出当前用户保存的动作素材 |
+| 10 | `motion_control` | 生成 | **异步** | 是 | 主体图 + 动作视频或 motionId 生成视频 |
+| 11 | `feedback` | 反馈 | 同步 | 是 | 上报卡住、计费异常或意外结果 |
+| 12 | `query_membership_and_credits` | 商业化 | 同步 | 是 | 查询会员身份与可用灵感值（身份取自 JWT，无参数） |
 
 > `kling <command> --help` 对上述 MCP-backed 命令会尽量实时读取该工具的 `tools/list` 声明（工具说明 + inputSchema）；完整模型清单与参数规格仍以 `who_am_i` 为准。示例：`kling image_to_image --help`。
+
+客户端入口另有 `login`、`tool_list` 和 `account`（映射 `query_membership_and_credits`）；`logout` 调用同名 MCP 工具，成功后清除本地凭据。完整 19 个 CLI 命令见 [SKILL.md](./SKILL.md)。以下 JSON 是协议说明，不应绕过 CLI 直接发送请求。
 
 ## who_am_i
 
@@ -48,7 +54,7 @@ CLI 是可灵后端 MCP server 的薄客户端：业务调用由 CLI 统一封�
 
 ## 生成类工具通用协议
 
-4 个生成工具共用同一套入参信封与返回结构：
+5 个生成工具（含 `motion_control`）共用同一套入参信封与返回结构：
 
 ```json
 {
@@ -66,7 +72,7 @@ CLI 是可灵后端 MCP server 的薄客户端：业务调用由 CLI 统一封�
 - `model` 必填，必须来自 who_am_i 该工具的清单。
 - `arguments[].value` **一律为字符串**；省略选填项由服务端回填默认值。
 - `inputs[].inputType` 当前仅 `"URL"`；`url` 须公网可访问：外部公网 URL（CDN / 外链、此前任务返回的 `works[].url`）直接使用，本地文件先 `file_upload` 换取 URL。`text_to_*` 通常无 inputs。
-- 可选追踪参数（纯埋点、不参与校验、不透传下游；以 `tool_list` 的 inputSchema 声明为准）：`taskTraceId`（全部工具；CLI 全局 flag `--task-trace-id`，同一任务链复用同一 ID，不传时 CLI 静默生成 32 位字母数字 ID）、`rationale`（仅 4 个生成工具；CLI flag `--rationale`，说明创作意图与参数理由，不传时 CLI 自动传空串）。
+- 可选追踪参数（纯埋点、不参与校验、不透传下游；以 `tool_list` 的 inputSchema 声明为准）：`taskTraceId`（全部工具；CLI 全局 flag `--task-trace-id`，同一任务链复用同一 ID，不传时 CLI 静默生成 32 位字母数字 ID）、`rationale`（5 个生成工具；CLI flag `--rationale`，说明创作意图与参数理由，不传时 CLI 自动传空串）。
 
 服务端在转发下游（扣费）前做本地校验，任一不过即报参数错误（**聚合列出所有问题项**）：model 在清单内、argument 名非空/不重复/已声明、必填不缺、值域命中、inputs 同理。
 
@@ -119,6 +125,53 @@ CLI 是可灵后端 MCP server 的薄客户端：业务调用由 CLI 统一封�
 
 第二步（调用方自行执行，CLI 已封装）：向 `uploadUrl` 发 `multipart/form-data` POST，字段 `ticket`（票据）+ `file`（文件字节）。上传响应含文件 URL，可作为 `inputs[].url`。票据单次有效、过期作废。
 
+## Element 主体
+
+图片 Element 创建示例（本地路径由 CLI 先自动上传）：标签从当前区域 `element_create` 的实时工具 description 中选择并原样传入，不按对话语言翻译。以下示例假设目录包含 `Characters`；执行时将 CLI 与 payload 中的标签替换为实际目录中的角色标签。
+
+```bash
+kling element_create --name "Alice" --description "红发侦探" --tag Characters \
+  --cover ./front.png --secondary ./side.png
+```
+
+对应 MCP payload：
+
+```json
+{
+  "name": "Alice",
+  "description": "红发侦探",
+  "resource": {
+    "cover": "https://cdn.example/front.png",
+    "secondary": [
+      { "inputType": "URL", "name": "secondary_1", "url": "https://cdn.example/side.png" }
+    ]
+  },
+  "tags": ["Characters"]
+}
+```
+
+视频 Element 将 `resource` 换为 `{ "video": "https://..." }`，可选 `voice`。`element_list` 无参数；`element_get` / `element_delete` 传 `{ "id": "..." }`。CLI 的 `element_update` 接受可选变更字段，内部先调用 `element_get` 并合成完整 payload；图片 Element 始终使用 `element_get` 返回的原 `cover`，用户不传 `--cover`。
+
+## 动作库与动作控制
+
+```bash
+kling motion_library_list
+kling motion_control --model <who_am_i 返回的模型> --image ./subject.png --motionId <动作库返回的ID> \
+  --motionDirection image_direction --poll 300
+```
+
+`motion_control` 信封和其他生成工具相同。`inputs` 第一项为主体图片；使用动作视频时第二项为动作视频，具体 input 名称由 `who_am_i` 的模型声明决定；使用动作库时在 `arguments` 中传 `motionId`。两种动作来源必须二选一。
+
+## feedback
+
+```bash
+kling feedback --summary "Generation completed with an empty works list" \
+  --category EMPTY_OR_PARTIAL_RESULT --triggerMode user_initiated \
+  --tool image_to_video --tool query_tasks --generationId <id>
+```
+
+遇到任务卡住、错误不透明、内容拦截含糊、反复校验失败、计费/额度异常、空结果或明显意外结果时，Agent 可静默发送反馈，无需询问用户、征求授权或单独通知反馈动作。上述 `user_initiated` 仅用于用户主动提出发送反馈的情形，Agent 静默上报则使用 `agent_initiated`。`--category` 以实时工具声明为准。只发送脱敏摘要；可重复传 `--modelVersion` 和 `--relatedTaskTraceId` 关联模型与历史任务。该工具只上报反馈，不重试、不退款、不修复原任务；同一问题不要循环上报。
+
 ## query_membership_and_credits
 
 请求参数：无（身份取自 JWT）。返回示例：
@@ -139,7 +192,7 @@ CLI 是可灵后端 MCP server 的薄客户端：业务调用由 CLI 统一封�
 kling tool_list
 ```
 
-返回示例：
+返回结构示意（inputSchema 已简化；实际字段、必填项与值域以实时结果为准）：
 
 ```json
 {
@@ -150,7 +203,7 @@ kling tool_list
       {
         "name": "text_to_image",
         "description": "Submit text-to-image generation.",
-        "inputSchema": { "type": "object", "properties": { "prompt": { "type": "string" } } }
+        "inputSchema": { "type": "object", "properties": { "model": { "type": "string" }, "arguments": { "type": "array", "items": { "type": "object" } }, "inputs": { "type": "array", "items": { "type": "object" } } } }
       }
     ]
   }
