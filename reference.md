@@ -15,15 +15,18 @@
   - **`[].description`**：模型说明，**Agent 选型的主要依据**（适用场景、是否推荐等；可能不出现）。
   - **`[].arguments[]`**：`{ name, required, default?, allowedValues?, description? }`。
   - **`[].inputs[]`**：`{ name, required, description? }`（参考资源声明）。
+  - **`[].combinedItemCap`**（可选）：`{ maxItems, inputPrefixes, arguments }`，声明跨类型素材的合计数量上限。`maxItems` 为非负整数；`inputPrefixes` 匹配计入总量的输入名称前缀；`arguments` 指定计入总量的 JSON 数组参数名（如 `elements`）。总量 = 匹配前缀的输入个数 + 指定数组参数的元素个数，不能用各类上限之和替代。
 - **`authMode`**：鉴权模式（OAuth 登录态下为 `oauth`）。
 
-## 异步生成工具提交成功后（text_to_image / image_to_image / text_to_video / image_to_video / motion_control）
+## 异步生成工具提交成功后（text_to_image / image_to_image / text_to_video / image_to_video / omni_ref_video / motion_control）
 
 主体库（`element_*`）为同步操作，响应见下方「主体库（Element 工具）」；创建主体返回持久主体 `id`，不使用 `generationId` 或 `query_tasks` 轮询。
 
 - **`generationId`**：不透明生成 ID，用于 `query_tasks` 轮询。
 - **`status`**：初始状态（下游透传，如 `submitted` / `QUEUING`）。
 - **`creditsConsumed`**：本次消耗的灵感值（可能不出现）。
+
+各生成命令复用此提交结构与 `query_tasks` 轮询；输入映射和命令示例见 [api-examples.md](./api-examples.md)。
 
 ## query_tasks
 

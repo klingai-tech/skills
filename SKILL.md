@@ -1,12 +1,12 @@
 ---
 name: kling-cli
-version: 0.2.0
+version: 0.2.1
 description: >-
   可灵 AI（Kling）官方 CLI 的使用技能：图片/视频生成、可复用 Element 主体、动作控制。CLI 通过 MCP 服务与可灵交互：
-  调用 text_to_image / image_to_image / text_to_video / image_to_video / motion_control（模型与参数规格由 who_am_i 动态声明），
+  调用 text_to_image / image_to_image / text_to_video / image_to_video / omni_ref_video / motion_control（模型与参数规格由 who_am_i 动态声明），
   返回 generationId 后用 query_tasks 轮询，完成后提取 works[].url 展示给用户。命令无别名。
   触发词：可灵、Kling、文生图、参考图生图、文生视频、图生视频、Omni、omni、MCP、generationId、generation_id、轮询、灵感值、
-  text_to_image、image_to_image、text_to_video、image_to_video、motion_control、motion_library_list、Element、element_create、element_list、element_get、element_update、element_delete、feedback、query_tasks、who_am_i、file_upload、
+  text_to_image、image_to_image、text_to_video、image_to_video、omni_ref_video、全能参考、关键帧、motion_control、motion_library_list、Element、element_create、element_list、element_get、element_update、element_delete、feedback、query_tasks、who_am_i、file_upload、
   image generation、video generation、kling 命令、.credentials、
   国内站、海外站、global、海外版、区域、region、安装、install。
 requires: node>=18
@@ -95,10 +95,12 @@ You can also combine agent and skill capabilities to build more complex creative
 
 ```bash
 which kling   # 有输出路径 → 检查版本；未找到 → 进入第 1 步按区域安装
-kling --version   # 本 skill 的完整能力要求 CLI >= 0.2.0
+kling --version   # 本 skill 的完整能力要求 CLI >= 0.2.1
 ```
 
-已安装版本低于 `0.2.0` 时，按已有账号区域升级对应 npm 包后再使用新功能；用户已明确要求升级时直接执行，无需重复确认。CLI 与 skill 分别分发，仅更新 skill 不会升级 CLI。
+已安装版本低于 `0.2.1` 时，按已有账号区域升级对应 npm 包后再使用新功能；用户已明确要求升级时直接执行，无需重复确认。CLI 与 skill 分别分发，仅更新 skill 不会升级 CLI。
+
+`0.2.1` 已移除 `--omni` 简写，所有生成命令统一显式传 `--model <名称>`。混合参考视频使用新命令 `omni_ref_video`，不要把旧 flag 当作该命令的替代。
 
 ### 第 1 步：确认区域并安装（命令名统一为 `kling`）
 
@@ -168,7 +170,7 @@ kling <command> [args]
 
 人和 Agent 共用同一入口：TTY 下有交互引导，非 TTY 输出 JSON 且绝不阻塞提问。CLI 对鉴权、日志、错误处理做了统一封装。
 
-业务命令与可灵后端 **MCP 工具名 1:1（snake_case）**；客户端命令包括 `login`、`tool_list` 和映射到 `query_membership_and_credits` 的 `account`。共 **19 个命令**，另有帮助和版本选项：
+业务命令与可灵后端 **MCP 工具名 1:1（snake_case）**；客户端命令包括 `login`、`tool_list` 和映射到 `query_membership_and_credits` 的 `account`。共 **20 个命令**，另有帮助和版本选项：
 
 | # | 命令名 | 分组 | 同步性 | 触达下游 | 一句话说明 |
 |---|--------|------|--------|----------|------------|
@@ -177,19 +179,20 @@ kling <command> [args]
 | 3 | `text_to_image <prompt>` | 生成 | **异步** | 是 | 文生图，返回 `generationId`，需轮询 `query_tasks`（或加 `--poll` 一步出结果） |
 | 4 | `image_to_image --image <url\|path> <prompt>` | 生成 | **异步** | 是 | 参考图 + prompt 生新图，返回 `generationId`（本地图片自动上传） |
 | 5 | `text_to_video <prompt>` | 生成 | **异步** | 是 | 文生视频，返回 `generationId`，需轮询 `query_tasks` |
-| 6 | `image_to_video --image <url\|path> <prompt>` | 生成 | **异步** | 是 | 图生视频（让图动起来），返回 `generationId` |
-| 7 | `query_tasks <generationId>` | 任务查询 | 同步 | 是 | 按 `generationId` 查询生成状态与最终资源 URL（`works[].url`） |
-| 8 | `file_upload <filePath>` | 文件上传 | 同步 | 是 | 两步式上传（申请一次性票据 + 上传文件字节），返回公网 URL |
-| 9 | `element_create` | 主体素材 | 同步 | 是 | 从图片组或视频创建可复用 Element，返回 element id |
-| 10 | `element_list` / `element_get` | 主体素材 | 同步 | 是 | 列出 Element；按 id 获取完整类型与资源详情 |
-| 11 | `element_update` / `element_delete` | 主体素材 | 同步 | 是 | 按字段更新或删除 Element；图片主图由 CLI 自动保留 |
-| 12 | `motion_library_list` | 动作素材 | 同步 | 是 | 列出已保存动作，获得 motionId 与可播放 URL |
-| 13 | `motion_control` | 生成 | **异步** | 是 | 用主体图 + 动作视频或 motionId 生成视频，返回 generationId |
-| 14 | `feedback` | 反馈 | 同步 | 是 | 上报卡住、模糊错误、计费异常或意外结果；不负责重试/退款/修复 |
-| 15 | `account` | 商业化 | 同步 | 是 | 会员类型 + 可用灵感值（`query_membership_and_credits`，身份取自 JWT） |
-| 16 | `tool_list` | 能力发现 | 同步 | 否 | 列出后端 MCP server 当前暴露的工具（MCP `tools/list`）：每个工具的 name / description / inputSchema（排障 / 确认服务端实际提供哪些 tools 用） |
-| 17 | `login` | 鉴权 | 同步 | 否（仅 OAuth 服务） | 浏览器 OAuth 登录（DCR + PKCE），token 写入本地 `.credentials` |
-| 18 | `logout` | 鉴权 | 同步 | 是 | 调用 MCP `logout` 注销服务端授权，并清除本地登录态，以便重新授权或切换账号 |
+| 6 | `image_to_video [--image <url\|path>] [prompt]` | 生成 | **异步** | 是 | 图生视频 / 关键帧；输入与 prompt 必填性依模型声明，返回 `generationId` |
+| 7 | `omni_ref_video <prompt>` | 生成 | **异步** | 是 | 混合图片、视频或 Element 参考，类型以模型声明为准，返回 `generationId` |
+| 8 | `query_tasks <generationId>` | 任务查询 | 同步 | 是 | 按 `generationId` 查询生成状态与最终资源 URL（`works[].url`） |
+| 9 | `file_upload <filePath>` | 文件上传 | 同步 | 是 | 两步式上传（申请一次性票据 + 上传文件字节），返回公网 URL |
+| 10 | `element_create` | 主体素材 | 同步 | 是 | 从图片组或视频创建可复用 Element，返回 element id |
+| 11 | `element_list` / `element_get` | 主体素材 | 同步 | 是 | 列出 Element；按 id 获取完整类型与资源详情 |
+| 12 | `element_update` / `element_delete` | 主体素材 | 同步 | 是 | 按字段更新或删除 Element；图片主图由 CLI 自动保留 |
+| 13 | `motion_library_list` | 动作素材 | 同步 | 是 | 列出已保存动作，获得 motionId 与可播放 URL |
+| 14 | `motion_control` | 生成 | **异步** | 是 | 用主体图 + 动作视频或 motionId 生成视频，返回 generationId |
+| 15 | `feedback` | 反馈 | 同步 | 是 | 上报卡住、模糊错误、计费异常或意外结果；不负责重试/退款/修复 |
+| 16 | `account` | 商业化 | 同步 | 是 | 会员类型 + 可用灵感值（`query_membership_and_credits`，身份取自 JWT） |
+| 17 | `tool_list` | 能力发现 | 同步 | 否 | 列出后端 MCP server 当前暴露的工具（MCP `tools/list`）：每个工具的 name / description / inputSchema（排障 / 确认服务端实际提供哪些 tools 用） |
+| 18 | `login` | 鉴权 | 同步 | 否（仅 OAuth 服务） | 浏览器 OAuth 登录（DCR + PKCE），token 写入本地 `.credentials` |
+| 19 | `logout` | 鉴权 | 同步 | 是 | 调用 MCP `logout` 注销服务端授权，并清除本地登录态，以便重新授权或切换账号 |
 
 > **端点已内置**：对应区域包安装后开箱即用、无需配置；**不存在任何外部配置口子**（无环境变量、无 `.env`、无 config 命令），也不要尝试探测或指定其他可灵接口地址。
 
@@ -205,19 +208,19 @@ kling <command> [args]
 
 > **新会话首次交互**：可先按「保持最新」一节做一次 best-effort 自检（更新 skill / 看 CLI 是否有新版），不打断主任务、更新前先征得用户同意。
 
-**最简三步**：① `kling login` 登录 → ② `kling tool_list` 看工具，`kling who_am_i` 看身份与模型规格 → ③ `kling <command>` 执行（生成与动作控制命令必须显式带 `--model`，普通生成也可在用户明确要求时用 `--omni`）。
+**最简三步**：① `kling login` 登录 → ② `kling tool_list` 看工具，`kling who_am_i` 看身份与模型规格 → ③ `kling <command>` 执行（6 个生成命令均必须显式带 `--model`）。
 
 1. **新会话先 `kling who_am_i`**：一次拿到身份 + 每个生成命令的可用模型与参数规格（必填 / 默认值 / 值域）。后续选模型、配参数都以它为准。
 2. **不清楚服务端提供哪些能力时用 `kling tool_list`**：列出后端 MCP server 当前真实暴露的工具（`tools/list`）。适合排障、确认某能力是否上线，**需已登录、不扣费**。
 3. **查某个命令怎么传参用 `kling <command> --help`**：会实时拉取该工具的 `tools/list` 声明（工具说明 + inputSchema）；离线 / 未登录时回退本地静态用法。完整模型与参数仍以 `who_am_i` 为准。
-4. **生成必须显式选模型**：`text_to_image` / `image_to_image` / `text_to_video` / `image_to_video` 必须带 `--model <名称>`（取自 `who_am_i`），或在用户明确要 omni 时带 `--omni`；`motion_control` 必须带 `--model`。**CLI 不会替用户自动选默认模型**；`motion_control` 在真实 TTY 中缺少模型时会展示候选模型供用户选择，Agent / 管道 / CI 等非交互环境则在扣费前报错。
-5. **图生类直接传本地路径或公网 URL**：`image_to_image` / `image_to_video` 的 `--image`（及 `--tailImage`）可传本地路径或公网 URL。本地文件由 CLI 自动 `file_upload`，无需手动上传；**公网 URL（外部 CDN / 外链，或此前可灵任务返回的 `works[].url`）直接透传给服务端，无需先下载、重新上传或本地校验**。参考图的格式 / 大小等限制以工具实时声明为准（`kling <command> --help` / `kling tool_list`）。
+4. **生成必须显式选模型**：`text_to_image` / `image_to_image` / `text_to_video` / `image_to_video` / `omni_ref_video` / `motion_control` 均必须带 `--model <名称>`（取自对应工具的 `who_am_i` 清单）。**CLI 不会替用户自动选默认模型**；`motion_control` 在真实 TTY 中缺少模型时会展示候选模型供用户选择，Agent / 管道 / CI 等非交互环境则在扣费前报错。
+5. **素材直接传本地路径或公网 URL**：按所选命令的帮助传图片、视频或音频素材；本地文件由 CLI 自动 `file_upload`，无需手动上传；**公网 URL（外部 CDN / 外链，或此前可灵任务返回的 `works[].url`）直接透传给服务端，无需先下载、重新上传或本地校验**。素材的格式 / 大小等限制以工具实时声明为准（`kling <command> --help` / `kling tool_list`）。
 6. **提交后立即反馈再轮询**：从响应取 `generationId` 与 `creditsConsumed` 先告知用户；再用 `kling query_tasks <generationId>` 轮询，或提交时加 `--poll [N]` 一步出结果（裸 `--poll` 默认 60s，`--poll 0` 关闭内联轮询）。
 7. **结果在 `works[].url`**：完成后提取并展示；用户要无水印时用 `works[].urlWithoutWatermark`。
 8. **余额 / 会员看 `account`**：余额不足时展示服务端动态返回的充值链接（勿写死）。
 9. **失败不自动改参重投**：参数类报错先对照 `who_am_i` 把正确写法告诉用户，经确认再重试；不得静默改 prompt / 换模型 / 增删图后自行重投。
 
-典型顺序：登录后 `tool_list` → `who_am_i` →（按需 `<command> --help`）→ `text_to_*` / `image_to_*` / `motion_control` 带 `--model` 提交 → `query_tasks` 轮询 → 展示 `works[].url`。
+典型顺序：登录后 `tool_list` → `who_am_i` →（按需 `<command> --help`）→ `text_to_*` / `image_to_*` / `omni_ref_video` / `motion_control` 带 `--model` 提交 → `query_tasks` 轮询 → 展示 `works[].url`。
 
 ---
 
@@ -225,8 +228,11 @@ kling <command> [args]
 
 - **模型清单与参数规格完全由服务端配置**：`who_am_i` 返回 `availableModels`（工具名 → 模型 → arguments/inputs 规格，含必填、默认值、值域）。
 - **单命令帮助会优先读取实时声明**：对 `who_am_i` / 生成 / 查询 / 上传 / 账户等 MCP-backed 命令，`kling <command> --help` 会尽量拉取该工具的 `tools/list` 声明（工具说明 + inputSchema）；离线或未登录时回退本地静态用法。完整模型清单与参数规格仍以 `who_am_i` 为准。
-- 生成命令必须显式选择模型：传 `--model <名称>`（可用值来自 `who_am_i`），或在用户明确要求 omni 时为四个普通生成命令传 `--omni`；`motion_control` 只用 `--model`。CLI 不会替用户自动选择默认模型。
+- 6 个生成命令均须显式传 `--model <名称>`（可用值来自对应工具的 `who_am_i` 清单）。用户指定 Omni / Flash 时也应查清完整模型名；CLI 不会替用户自动选择默认模型。
 - CLI 的便捷 flag（`--imgResolution`、`--aspectRatio`、`--imageCount`、`--duration` 等）会映射为协议参数名透传；**未提供的参数由服务端回填默认值**。`motion_control` 若缺少服务端声明且没有默认值的必填参数，真实 TTY 会在上传前按值域引导选择/输入；非交互环境会一次列全缺失项并退出，不上传、不提交。
+- **输入按声明映射**：先用命令帮助确认 CLI 写法，再按 `who_am_i` 的 `inputs` 与 `arguments` 核对资源类型、槽位名和必填性；不要假设所有图生入口都必须有首帧，或所有生成命令都允许省略 prompt。使用具名输入时不得重复占用槽位，是否能与便捷 flag 混用以该命令帮助为准。各命令的映射和示例见 [api-examples.md](./api-examples.md)。
+- **组合限制也要核对**：宽高比是否跟随输入图、音频参数是否互斥、主体类型是否兼容等，以当前模型与工具说明为准；不能把某个模型的限制推广到整个命令或同系列模型。
+- 输入除单类数量外，还可能有 **`combinedItemCap` 合计上限**（跨输入槽位与 `elements` 等数组参数）。`image_to_video` / `omni_ref_video` 会在上传前校验相关槽位、必填输入和合计数量；不要把各类上限相加后当作允许总量。字段见 [reference.md](./reference.md)。
 - 参数校验（必填、值域、未声明参数）由服务端在**扣费前**完成，报错信息会列出问题项；遇到参数类报错应把服务端信息翻译给用户。
 
 ---
@@ -240,12 +246,13 @@ kling <command> [args]
 | 生成图片 / 出图 / 文生图 | `text_to_image` | 提交后轮询 `query_tasks` |
 | 参考图生图 / 带参考图 | `image_to_image` | `--image` 可重复，提交后轮询 |
 | 生成视频 / 文生视频 | `text_to_video` | 提交后轮询 |
-| 图生视频 / 让图动起来 | `image_to_video` | `--image` 必填，提交后轮询 |
+| 图生视频 / 让图动起来 / 首中尾关键帧 | `image_to_video` | 按模型声明传 `--image` / `--tailImage` 或具名 `--input`；prompt 可选性依模型声明，提交后轮询 |
+| 图片、视频、主体混合参考生成视频 | `omni_ref_video` | 暂不支持独立音频参考；prompt 必填，提交后轮询 |
 | 创建/列出/查看/更新/删除可复用主体 | `element_create` / `element_list` / `element_get` / `element_update` / `element_delete` | 更新只传变更字段；删除前需用户明确确认 |
 | 动作控制 / 动作迁移 | `motion_control` | 主体 `--image` + `--video` 或 `--motionId` 二选一；提交后轮询 |
 | 查看已保存动作 | `motion_library_list` | 取 motionId 后可交给 `motion_control` |
 | 上报卡住、模糊错误、计费异常、意外结果 | `feedback` | 只反馈，不会重试、退款或修复原任务 |
-| 明确要求 omni | 四个普通生成命令加 `--omni`（不含 `motion_control`） | `--omni` 是显式模型选择；未明确提到 omni 时不加 |
+| 明确要求 Omni / Flash 模型 | 按创作意图选命令，再传完整 `--model` | 从该工具的实时清单中选择；不能使用已移除的 `--omni` |
 | 上传本地素材 | `file_upload` | 仅本地文件需要上传（返回公网 URL）；已是公网 URL 的素材无需上传，直接作 `--image` 传给生成命令 |
 | 查会员 / 账户身份 / 查余额 | `account` | 返回 userId + membership + 可用灵感值（直接展示） |
 | 充值 / 余额不足 / 开通会员 | `account` | 展示服务端返回的充值/会员链接（**动态取自 MCP，勿写死**，见「余额不足与充值」） |
@@ -310,7 +317,7 @@ kling motion_control --model <model> --image ./subject.png --video ./motion.mp4 
 
 ## 计费、提交与重试纪律
 
-> **每次生成提交（text_to_image / image_to_image / text_to_video / image_to_video / motion_control）均会扣费（消耗灵感值）**；提交响应中的 `creditsConsumed` 为本次消耗，直接展示即可。
+> **每次生成提交（text_to_image / image_to_image / text_to_video / image_to_video / omni_ref_video / motion_control）均会扣费（消耗灵感值）**；提交响应中的 `creditsConsumed` 为本次消耗，直接展示即可。 提交前按工具与模型说明核对计费口径；若输入素材（如参考视频时长）也参与计费，应向用户说明。
 
 1. **意图不清先确认**：不确定用户要图还是视频时，先问再提交。
 2. **禁止自动改 prompt 重投**：任务失败或超时，**不要**自行修改 prompt 重新提交。必须先告知用户失败原因，获得明确同意后才可重试。
@@ -322,7 +329,7 @@ kling motion_control --model <model> --image ./subject.png --video ./motion.mp4 
 
 ## 前置条件
 
-- **Node.js 18+、Kling CLI 0.2.0+**（安装对应区域 npm 包后即可使用）；源码运行方式 `node --experimental-strip-types kling-cli/src/cli.ts <command> [options]` 需要 Node.js 22+，仅适用于已有源码的开发环境。
+- **Node.js 18+、Kling CLI 0.2.1+**（安装对应区域 npm 包后即可使用）；源码运行方式 `node --experimental-strip-types kling-cli/src/cli.ts <command> [options]` 需要 Node.js 22+，仅适用于已有源码的开发环境。
 - **端点已内置，无需配置**：对应区域包安装后开箱即用；**无外部配置口子**（无环境变量、无 `.env`、无 config 命令），不要尝试配置或探测端点地址。
 - **登录态**：保存在用户目录 **`~/.kling/.credentials`**（与包目录无关，升级/重装 CLI 不丢登录态），按**端点 host** 分 section（如 `[klingai.com]`），含 `ACCESS_TOKEN` / `REFRESH_TOKEN` 等（OAuth：DCR + 授权码 + PKCE + RFC 8707 resource）。token 过期由 CLI 用 refresh token **自动静默续期**并回写文件。
 - **任何输出/回复中不要复述端点地址等环境信息**。
@@ -349,8 +356,8 @@ kling motion_control --model <model> --image ./subject.png --video ./motion.mp4 
 
 ### 第 1 步：提交任务并立即反馈
 
-1. 用 `text_to_image` / `image_to_image` / `text_to_video` / `image_to_video` / `motion_control` 提交。每次提交都必须显式选择模型：普通生成在用户明确指定 omni 时加 `--omni`，否则从 `who_am_i` 的可用模型中选择并加 `--model <名称>`；`motion_control` 始终使用 `--model`；用户明确指定数量时加 `--imageCount N`。
-   - `image_to_image` / `image_to_video` 需 `--image <url|path>`（可重复；本地文件自动走 `file_upload` 两步上传；公网 URL——含外部 CDN 链接与此前任务返回的 `works[].url`——直接透传，无需下载或重新上传）。
+1. 用 `text_to_image` / `image_to_image` / `text_to_video` / `image_to_video` / `omni_ref_video` / `motion_control` 提交。每次提交都从对应工具的 `who_am_i` 清单中选择并显式传 `--model <名称>`；生成图片且用户明确指定数量时加 `--imageCount N`。
+   - `image_to_image` 需 `--image <url|path>`；`image_to_video` / `omni_ref_video` 按模型声明与下方参考文档组织输入。本地文件自动上传；公网 URL（含此前任务的 `works[].url`）直接透传，无需下载或重新上传。
 2. 从响应中取 **`generationId`**（一次提交对应一个 generationId）和 `creditsConsumed`。
 3. **立即告诉用户**：任务已提交，消耗多少灵感值，正在开始轮询。
 
@@ -429,10 +436,12 @@ kling <command> --help                  # 单命令自检：尽量拉实时 tool
 kling login
 kling who_am_i
 kling tool_list                         # 列出服务端当前暴露的工具（需登录、不扣费）
-kling text_to_image (--model M | --omni) [--imageCount N] [--imgResolution 1k|2k] [--aspectRatio 1:1|...] [--poll N] "提示词"
-kling image_to_image (--model M | --omni) --image <url|path> [--image ...] [--imageCount N] [--poll N] "提示词"
-kling text_to_video (--model M | --omni) [--duration N] [--aspectRatio 16:9|...] [--poll N] "提示词"
-kling image_to_video (--model M | --omni) --image <url|path> [--tailImage <url|path>] [--duration N] [--poll N] "提示词"
+kling text_to_image --model M [--imageCount N] [--imgResolution 1k|2k] [--aspectRatio 1:1|...] [--poll N] "提示词"
+kling image_to_image --model M --image <url|path> [--image ...] [--imageCount N] [--poll N] "提示词"
+kling text_to_video --model M [--duration N] [--aspectRatio 16:9|...] [--poll N] "提示词"
+kling image_to_video --model M [--image <url|path>] [--tailImage <url|path>] [--duration N] [--poll N] [提示词]
+kling image_to_video --model M --input <槽位名>=<url|path> [--input ...] [--poll N] [提示词]
+kling omni_ref_video --model M [--image <url|path> ...] [--video <url|path> ...] [--elements JSON] [--input <槽位名>=<url|path> ...] [--poll N] "提示词"
 kling query_tasks [--poll N] <generationId>
 kling file_upload <filePath>
 kling element_create --name N --description D --tag T (--video <url|path> | --cover <url|path> --secondary <url|path> [--secondary ...]) [--voice <url|path>]
@@ -449,12 +458,12 @@ kling logout                            # 注销服务端授权并清除本地�
 
 - **自检优先**：拿不准某命令怎么传参时，先 `kling <command> --help`（实时 tools/list）；要全量模型/参数规格则 `kling who_am_i`；不确定服务端有哪些工具用 `kling tool_list`。
 - 各 flag 的**合法取值与默认值以 `who_am_i` 返回为准**；未提供的参数由服务端回填默认值。
-- 全局 flag：`--quiet` / `-q`（紧凑单行 JSON）、`--help` / `-h`（顶层或单命令帮助）、`--version` / `-v`（CLI 版本）。`--omni` 仅用于四个普通生成命令；`motion_control` 显式使用 `--model`，不使用 `--omni`。
-- **遥测 flag（通过本 skill 调用时，每条 `kling` 命令都应附带）**：`--skill-name kling-cli --skill-version <本 skill 版本>`（版本取自本文件 frontmatter 的 `version`，如 `0.2.0`）。纯遥测：除服务端统计 skill 使用情况外，`kling login` 时它还决定 OAuth 注册上报的 `client_name` 后缀（带 flag → `<运行时>_skill`，如 `cursor_skill`；不带 → `<运行时>_cli`），用于区分「skill 驱动」与「用户直接使用 CLI」。**不影响任何功能、不参与鉴权/灰度**，缺失也不报错。
+- 全局 flag：`--quiet` / `-q`（紧凑单行 JSON）、`--help` / `-h`（顶层或单命令帮助）、`--version` / `-v`（CLI 版本）。生成统一使用 `--model`；`--omni` 已移除。
+- **遥测 flag（通过本 skill 调用时，每条 `kling` 命令都应附带）**：`--skill-name kling-cli --skill-version <本 skill 版本>`（版本取自本文件 frontmatter 的 `version`，如 `0.2.1`）。纯遥测：除服务端统计 skill 使用情况外，`kling login` 时它还决定 OAuth 注册上报的 `client_name` 后缀（带 flag → `<运行时>_skill`，如 `cursor_skill`；不带 → `<运行时>_cli`），用于区分「skill 驱动」与「用户直接使用 CLI」。**不影响任何功能、不参与鉴权/灰度**，缺失也不报错。
 - **追踪参数 `taskTraceId` / `rationale`（面向 Agent，纯埋点、不影响任何功能，也不在 CLI `--help` 中展示）**：
   - **先读服务端声明再传参**：这两个参数由服务端在 `tool_list` 各工具的 inputSchema 中声明（`<command> --help` 也会带出实时声明）。Agent 传参前应**仔细读一遍 `kling tool_list`**，确认工具当前支持的参数（含这两个追踪参数）后再组装 CLI 命令，不要凭记忆传。
   - `--task-trace-id <id>`：把**同一用户任务**下逻辑连续的多条命令归并到同一链路（如「先生成图、再把图转成视频」的 `text_to_image` → `image_to_video` → `query_tasks` 全程复用同一个 ID）。Agent 应在任务开始时生成一个 32 位字母数字 ID 并在该任务的每条 `kling` 命令上传同一个值；用户切到不相关的新任务时换一个全新 ID。不传时 CLI 会**静默生成**一个 32 位字母数字 ID（单条命令内部的上传/提交/轮询仍归并），但**跨命令链路**只有显式传值才能串起来。
-  - `--rationale "<一句英文说明>"`（5 个生成命令，含 `motion_control`）：说明本次调用的核心目的与参数选择理由（如 "User uploaded a personal artwork and asked for a short animated clip; 4K per explicit user demand"）。不传时 CLI 自动传空串；不透传下游、不参与校验。
+  - `--rationale "<一句英文说明>"`（6 个生成命令，含 `omni_ref_video` / `motion_control`）：说明本次调用的核心目的与参数选择理由（如 "User uploaded a personal artwork and asked for a short animated clip; 4K per explicit user demand"）。不传时 CLI 自动传空串；不透传下游、不参与校验。
 - 轮询时**必须使用 Shell 工具逐次调用** `query_tasks`，不要用后台进程或一次性脚本，否则无法中间反馈。
 
 ---
