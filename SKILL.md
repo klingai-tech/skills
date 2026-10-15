@@ -180,7 +180,7 @@ kling <command> [args]
 | 4 | `image_to_image --image <url\|path> <prompt>` | 生成 | **异步** | 是 | 参考图 + prompt 生新图，返回 `generationId`（本地图片自动上传） |
 | 5 | `text_to_video <prompt>` | 生成 | **异步** | 是 | 文生视频，返回 `generationId`，需轮询 `query_tasks` |
 | 6 | `image_to_video [--image <url\|path>] [prompt]` | 生成 | **异步** | 是 | 图生视频 / 关键帧；输入与 prompt 必填性依模型声明，返回 `generationId` |
-| 7 | `omni_ref_video <prompt>` | 生成 | **异步** | 是 | 混合图片、视频或 Element 参考，类型以模型声明为准，返回 `generationId` |
+| 7 | `omni_ref_video <prompt>` | 生成 | **异步** | 是 | 混合图片、视频、音频或 Element 参考，类型以模型声明为准，返回 `generationId` |
 | 8 | `query_tasks <generationId>` | 任务查询 | 同步 | 是 | 按 `generationId` 查询生成状态与最终资源 URL（`works[].url`） |
 | 9 | `file_upload <filePath>` | 文件上传 | 同步 | 是 | 两步式上传（申请一次性票据 + 上传文件字节），返回公网 URL |
 | 10 | `element_create` | 主体素材 | 同步 | 是 | 从图片组或视频创建可复用 Element，返回 element id |
@@ -247,7 +247,7 @@ kling <command> [args]
 | 参考图生图 / 带参考图 | `image_to_image` | `--image` 可重复，提交后轮询 |
 | 生成视频 / 文生视频 | `text_to_video` | 提交后轮询 |
 | 图生视频 / 让图动起来 / 首中尾关键帧 | `image_to_video` | 按模型声明传 `--image` / `--tailImage` 或具名 `--input`；prompt 可选性依模型声明，提交后轮询 |
-| 图片、视频、主体混合参考生成视频 | `omni_ref_video` | 暂不支持独立音频参考；prompt 必填，提交后轮询 |
+| 图片、视频、音频、主体混合参考生成视频 | `omni_ref_video` | 按模型声明传 `--image` / `--video` / `--audio` / `--elements`；prompt 必填，提交后轮询 |
 | 创建/列出/查看/更新/删除可复用主体 | `element_create` / `element_list` / `element_get` / `element_update` / `element_delete` | 更新只传变更字段；删除前需用户明确确认 |
 | 动作控制 / 动作迁移 | `motion_control` | 主体 `--image` + `--video` 或 `--motionId` 二选一；提交后轮询 |
 | 查看已保存动作 | `motion_library_list` | 取 motionId 后可交给 `motion_control` |
@@ -441,7 +441,7 @@ kling image_to_image --model M --image <url|path> [--image ...] [--imageCount N]
 kling text_to_video --model M [--duration N] [--aspectRatio 16:9|...] [--poll N] "提示词"
 kling image_to_video --model M [--image <url|path>] [--tailImage <url|path>] [--duration N] [--poll N] [提示词]
 kling image_to_video --model M --input <槽位名>=<url|path> [--input ...] [--poll N] [提示词]
-kling omni_ref_video --model M [--image <url|path> ...] [--video <url|path> ...] [--elements JSON] [--input <槽位名>=<url|path> ...] [--poll N] "提示词"
+kling omni_ref_video --model M [--image <url|path> ...] [--video <url|path> ...] [--audio <url|path> ...] [--elements JSON] [--input <槽位名>=<url|path> ...] [--poll N] "提示词"
 kling query_tasks [--poll N] <generationId>
 kling file_upload <filePath>
 kling element_create --name N --description D --tag T (--video <url|path> | --cover <url|path> --secondary <url|path> [--secondary ...]) [--voice <url|path>]

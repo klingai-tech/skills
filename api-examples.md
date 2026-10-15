@@ -11,7 +11,7 @@ CLI 是可灵后端 MCP server 的薄客户端：业务调用由 CLI 统一封�
 | 3 | `image_to_image` | 生成 | **异步** | 是 | 参考图 + prompt 生图（需 inputs），返回 `generationId` |
 | 4 | `text_to_video` | 生成 | **异步** | 是 | 文生视频，返回 `generationId`，需轮询 `query_tasks` |
 | 5 | `image_to_video` | 生成 | **异步** | 是 | 图生视频 / 关键帧；输入必填性依模型声明，返回 `generationId` |
-| 6 | `omni_ref_video` | 生成 | **异步** | 是 | 混合图片、视频或主体参考；类型与必填性依模型声明，返回 `generationId` |
+| 6 | `omni_ref_video` | 生成 | **异步** | 是 | 混合图片、视频、音频或主体参考；类型与必填性依模型声明，返回 `generationId` |
 | 7 | `query_tasks` | 任务查询 | 同步 | 是 | 按 `generationId` 查询生成状态与最终资源 URL |
 | 8 | `file_upload` | 文件上传 | 同步 | 是 | 申请一次性上传票据；文件字节由调用方自行上传（两步式，见下） |
 | 9 | `element_create` / `element_list` / `element_get` / `element_update` / `element_delete` | 主体素材 | 同步 | 是 | 可复用 Element 的完整生命周期 |
@@ -99,7 +99,7 @@ CLI 写法以 `<command> --help` 为准，模型支持的输入、参数、必�
 | `text_to_image` / `text_to_video` | prompt 必填，通常无素材输入。 |
 | `image_to_image` | prompt 与 `--image` 必填，重复 `--image` 按模型声明的输入顺序填入。 |
 | `image_to_video` | `--image` 依次填非尾帧槽位，`--tailImage` 填声明的尾帧槽位；或用重复的 `--input <槽位名>=<url\|path>` 精确指定，不能与前两者混用。同一槽位只能指定一次，名称接受声明的 snake_case / camelCase 写法。仅模型声明可选时才能省略 prompt 或输入，不能二者都为空。 |
-| `omni_ref_video` | prompt 必填；重复的 `--image` / `--video` 分别映射到 `image_1..` / `video_1..`，只使用模型声明支持的类型。暂不支持独立音频参考，不传 `--audio` 或 `audio_*` 输入。`--input` 可补充其他声明的槽位，不能重复占用。无必填输入时可以只传提示词。 |
+| `omni_ref_video` | prompt 必填；重复的 `--image` / `--video` / `--audio` 分别映射到 `image_1..` / `video_1..` / `audio_1..`，只使用模型声明支持的类型。`--input` 可补充其他声明的槽位，不能重复占用。无必填输入时可以只传提示词。 |
 | `motion_control` | 主体 `--image` 必填；动作来源为 `--video` 或 `--motionId` 二选一，具体映射见下方「动作库与动作控制」。 |
 
 `--elements` 传模型声明的 JSON 数组字符串，进入 `arguments` 而非 `inputs`；绑定前按 [SKILL.md](./SKILL.md) 的主体兼容约束检查类型。单类数量和 `combinedItemCap` 合计上限须同时满足。`image_to_video` / `omni_ref_video` 在上传前检查相关槽位、必填输入及合计数量。宽高比、音频互斥、主体兼容性和输入素材计费等模型规则，执行前仍须读取实时说明。
@@ -120,6 +120,10 @@ kling image_to_video --model <model> \
 kling omni_ref_video --model <model> --image ./ref.jpg --video ./clip.mp4 \
   --keepOriginalSound true --enableAudio false \
   "参考视频1的运镜，保持图片1的角色外观" --poll 300
+
+# 模型支持图片与独立音频参考时，音频可传本地路径或公网 URL
+kling omni_ref_video --model <model> --image ./ref.jpg --audio ./voice.mp3 \
+  "让图片1中的角色按音频1说话" --poll 300
 ```
 
 所有生成命令复用上方提交响应，随后按 `generationId` 调用 `query_tasks`，从 `works[].url` 取结果。CLI 版本依据为 [`@klingai/cli-cn@0.2.1`](https://www.npmjs.com/package/@klingai/cli-cn/v/0.2.1)，具体模型能力仍由运行时声明决定。
