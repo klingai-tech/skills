@@ -72,6 +72,8 @@
 
 ## account（query_membership_and_credits 直通）
 
+当前账号级查询不接受工作区选择。响应没有工作区 ID、角色或计费主体，`userId` 不能代替工作区 ID，`availableRemainCredits` 不能认定为团队余额或团队可消费权限。相关边界见 [SKILL.md](SKILL.md#个人--团队工作区权限与计费边界)。
+
 - **`userId`**：用户 ID。
 - **`membershipType`**：会员身份（`NORMAL` / `VIP` / `SVIP` / `SSVIP` / `SSSVIP`）。
 - **`availableRemainCredits`**：可用灵感值（用户可见值，无需换算）。`0` 或过低时，按「余额不足与充值」引导用户充值。

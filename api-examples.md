@@ -215,7 +215,7 @@ kling feedback --summary "Generation completed with an empty works list" \
 
 ## query_membership_and_credits
 
-请求参数：无（身份取自 JWT）。返回示例：
+请求参数：无业务参数（身份取自 JWT；实时 schema 可声明追踪字段 `taskTraceId`）。返回示例：
 
 ```json
 { "userId": 10000001, "membershipType": "NORMAL", "availableRemainCredits": 0 }
@@ -224,6 +224,12 @@ kling feedback --summary "Generation completed with an empty works list" \
 `membershipType`：`NORMAL` / `VIP` / `SVIP` / `SSVIP` / `SSSVIP`；`availableRemainCredits` 为用户可见的灵感值，无需换算。
 
 > CLI 的 `account` 命令即此工具的直通调用。
+
+```bash
+kling account  # 查询已登录账号余额，不选择工作区
+```
+
+当前响应不标识工作区或计费归属，不能据此认定是个人 / 团队余额。不要给此命令添加工作区参数：已发布 0.2.3 会忽略额外参数，成功响应不表示选择生效。指定工作区的余额查询与扣费须等待服务端明确声明选择、权限和计费契约；验证流程见 [SKILL.md 的工作区边界](SKILL.md#个人--团队工作区权限与计费边界)。
 
 ## 工具发现（CLI `tool_list`）
 
