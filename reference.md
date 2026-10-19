@@ -4,7 +4,7 @@
 
 > 响应字段统一 **camelCase**（服务端契约）；旧版服务端可能仍返回 snake_case 同义字段（如 `generation_id`），CLI 两种都能解析，Agent 读取输出时按同一字段理解。
 
-`kling <command> --help` 对 MCP-backed 命令会尽量展示该工具的实时 `tools/list` 声明（工具说明 + inputSchema）；获取失败时回退本地静态用法。完整模型清单与参数规格见下方 `who_am_i`。
+`kling <command> --help` 对生成命令尽量读取实时 `who_am_i` 模型参数与输入槽位，其他 MCP 命令读取 `tools/list`（工具说明 + inputSchema）；获取失败时回退本地静态用法。完整模型清单与参数规格见下方 `who_am_i`。
 
 ## who_am_i（能力发现）
 

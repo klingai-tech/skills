@@ -1,6 +1,6 @@
 ---
 name: kling-cli
-version: 0.2.1
+version: 0.2.3
 description: >-
   可灵 AI（Kling）官方 CLI 的使用技能：图片/视频生成、可复用 Element 主体、动作控制。CLI 通过 MCP 服务与可灵交互：
   调用 text_to_image / image_to_image / text_to_video / image_to_video / omni_ref_video / motion_control（模型与参数规格由 who_am_i 动态声明），
@@ -95,12 +95,12 @@ You can also combine agent and skill capabilities to build more complex creative
 
 ```bash
 which kling   # 有输出路径 → 检查版本；未找到 → 进入第 1 步按区域安装
-kling --version   # 本 skill 的完整能力要求 CLI >= 0.2.1
+kling --version   # 本 skill 的完整能力要求 CLI >= 0.2.3
 ```
 
-已安装版本低于 `0.2.1` 时，按已有账号区域升级对应 npm 包后再使用新功能；用户已明确要求升级时直接执行，无需重复确认。CLI 与 skill 分别分发，仅更新 skill 不会升级 CLI。
+已安装版本低于 `0.2.3` 时，按已有账号区域升级对应 npm 包后再使用新功能；用户已明确要求升级时直接执行，无需重复确认。CLI 与 skill 分别分发，仅更新 skill 不会升级 CLI。
 
-`0.2.1` 已移除 `--omni` 简写，所有生成命令统一显式传 `--model <名称>`。混合参考视频使用新命令 `omni_ref_video`，不要把旧 flag 当作该命令的替代。
+自 `0.2.1` 起已移除 `--omni` 简写，所有生成命令统一显式传 `--model <名称>`。混合参考视频使用新命令 `omni_ref_video`，不要把旧 flag 当作该命令的替代。
 
 ### 第 1 步：确认区域并安装（命令名统一为 `kling`）
 
@@ -174,7 +174,7 @@ kling <command> [args]
 
 | # | 命令名 | 分组 | 同步性 | 触达下游 | 一句话说明 |
 |---|--------|------|--------|----------|------------|
-| 1 | `--help`（或不带参数） | 能力发现 | 同步 | 否 | 顶层 `kling --help` 纯本地打印全部命令；`<command> --help` 会尽量拉取该工具实时 `tools/list` 声明（需登录），离线/未登录时回退本地静态用法 |
+| 1 | `--help`（或不带参数） | 能力发现 | 同步 | 否 | 顶层 `kling --help` 纯本地打印全部命令；`<command> --help` 生成命令尽量读取实时 `who_am_i` 模型声明，其他 MCP 命令读取 `tools/list`（需登录），离线/未登录时回退本地静态用法 |
 | 2 | `who_am_i` | 能力发现 | 同步 | 否 | 返回当前用户身份 + 每个生成命令的可用模型与参数规格；**首次调用先打它** |
 | 3 | `text_to_image <prompt>` | 生成 | **异步** | 是 | 文生图，返回 `generationId`，需轮询 `query_tasks`（或加 `--poll` 一步出结果） |
 | 4 | `image_to_image --image <url\|path> <prompt>` | 生成 | **异步** | 是 | 参考图 + prompt 生新图，返回 `generationId`（本地图片自动上传） |
@@ -212,7 +212,7 @@ kling <command> [args]
 
 1. **新会话先 `kling who_am_i`**：一次拿到身份 + 每个生成命令的可用模型与参数规格（必填 / 默认值 / 值域）。后续选模型、配参数都以它为准。
 2. **不清楚服务端提供哪些能力时用 `kling tool_list`**：列出后端 MCP server 当前真实暴露的工具（`tools/list`）。适合排障、确认某能力是否上线，**需已登录、不扣费**。
-3. **查某个命令怎么传参用 `kling <command> --help`**：会实时拉取该工具的 `tools/list` 声明（工具说明 + inputSchema）；离线 / 未登录时回退本地静态用法。完整模型与参数仍以 `who_am_i` 为准。
+3. **查某个命令怎么传参用 `kling <command> --help`**：对生成命令尽量读取实时 `who_am_i` 模型参数与输入槽位，其他 MCP 命令读取 `tools/list`（工具说明 + inputSchema）；离线 / 未登录时回退本地静态用法。完整模型与参数仍以 `who_am_i` 为准。
 4. **生成必须显式选模型**：`text_to_image` / `image_to_image` / `text_to_video` / `image_to_video` / `omni_ref_video` / `motion_control` 均必须带 `--model <名称>`（取自对应工具的 `who_am_i` 清单）。**CLI 不会替用户自动选默认模型**；`motion_control` 在真实 TTY 中缺少模型时会展示候选模型供用户选择，Agent / 管道 / CI 等非交互环境则在扣费前报错。
 5. **素材直接传本地路径或公网 URL**：按所选命令的帮助传图片、视频或音频素材；本地文件由 CLI 自动 `file_upload`，无需手动上传；**公网 URL（外部 CDN / 外链，或此前可灵任务返回的 `works[].url`）直接透传给服务端，无需先下载、重新上传或本地校验**。素材的格式 / 大小等限制以工具实时声明为准（`kling <command> --help` / `kling tool_list`）。
 6. **提交后立即反馈再轮询**：从响应取 `generationId` 与 `creditsConsumed` 先告知用户；再用 `kling query_tasks <generationId>` 轮询，或提交时加 `--poll [N]` 一步出结果（裸 `--poll` 默认 60s，`--poll 0` 关闭内联轮询）。
@@ -227,7 +227,7 @@ kling <command> [args]
 ## 模型与参数：以 who_am_i 为准（核心心智）
 
 - **模型清单与参数规格完全由服务端配置**：`who_am_i` 返回 `availableModels`（工具名 → 模型 → arguments/inputs 规格，含必填、默认值、值域）。
-- **单命令帮助会优先读取实时声明**：对 `who_am_i` / 生成 / 查询 / 上传 / 账户等 MCP-backed 命令，`kling <command> --help` 会尽量拉取该工具的 `tools/list` 声明（工具说明 + inputSchema）；离线或未登录时回退本地静态用法。完整模型清单与参数规格仍以 `who_am_i` 为准。
+- **单命令帮助会优先读取实时声明**：对 `who_am_i` / 生成 / 查询 / 上传 / 账户等 MCP-backed 命令，`kling <command> --help` 对生成命令尽量读取实时 `who_am_i` 模型参数与输入槽位，其他 MCP 命令读取 `tools/list`（工具说明 + inputSchema）；离线或未登录时回退本地静态用法。完整模型清单与参数规格仍以 `who_am_i` 为准。
 - 6 个生成命令均须显式传 `--model <名称>`（可用值来自对应工具的 `who_am_i` 清单）。用户指定 Omni / Flash 时也应查清完整模型名；CLI 不会替用户自动选择默认模型。
 - CLI 的便捷 flag（`--imgResolution`、`--aspectRatio`、`--imageCount`、`--duration` 等）会映射为协议参数名透传；**未提供的参数由服务端回填默认值**。`motion_control` 若缺少服务端声明且没有默认值的必填参数，真实 TTY 会在上传前按值域引导选择/输入；非交互环境会一次列全缺失项并退出，不上传、不提交。
 - **输入按声明映射**：先用命令帮助确认 CLI 写法，再按 `who_am_i` 的 `inputs` 与 `arguments` 核对资源类型、槽位名和必填性；不要假设所有图生入口都必须有首帧，或所有生成命令都允许省略 prompt。使用具名输入时不得重复占用槽位，是否能与便捷 flag 混用以该命令帮助为准。各命令的映射和示例见 [api-examples.md](./api-examples.md)。
@@ -274,7 +274,7 @@ kling <command> [args]
 
 1. **创建**：图片 Element 用 `--cover` + 1–3 个 `--secondary`；视频 Element 只用 `--video`，两种资源不可混传。两者都至少带一个 `--tag`，标签必须从当前区域 `element_create` 的实时工具 description 中选择并原样传入；创建和更新都不要按对话语言翻译标签或硬编码某一区域的目录。可选 `.mp3` `--voice`。本地文件自动上传。
 2. **绑定前先确认类型与兼容性**：先 `element_list` 找 id，再 `element_get <id>` 看完整 `resource`，并同时核对实时工具 description 的主体类型限制和 `who_am_i` 的模型参数。目标模型必须声明 `elements`；图片主体不能仅因模型名是 `kling-image-o1` 就被拒绝。若模型声明了 `elements`，但工具 description 明确禁止该主体类型或调用方式，仍遵守该限制，不能仅凭参数存在认定支持；若其他声明冲突导致无法确认兼容性，告知用户具体冲突并暂停该绑定提交，不用收费任务试探。兼容模型需符合用户意图，切换模型前遵循重试与选型规则。
-3. **绑定写法**：prompt 中用 `<<<id>>>` 标记主体，同时按 `who_am_i` 声明传 `--elements '[{"id":"<id>","bindName":"<name>"}]'`。不得只写占位符却漏传 `elements`，也不得对不兼容工具/模型硬传。
+3. **绑定写法**：prompt 中用 `<<<id>>>` 标记主体，同时按 `who_am_i` 声明传 `--elements '[{"id":"<id>","bindName":"<name>","type":"<element_get 返回的类型>"}]'`。不得只写占位符却漏传 `elements`，也不得对不兼容工具/模型硬传。
 4. **更新只传变更字段**：用户不需要手工补全现有字段，也不要传 `--cover`。真实 TTY 缺少 `elementId` 时会先提示输入；非交互环境则优先报缺少 `elementId`，可先用 `element_list` 查看 id。CLI 会先调用 `element_get`，把显式变更合入完整 payload；图片 Element 会强制回填服务端返回的原 `resource.cover`，不会上传或替换主图。`secondary[]` 一旦提供就是整组替换且最终仍需 1–3 张；用户要求添加或删减辅助图时，仍须先展示现有列表并确认最终保留项，不能静默丢弃现有图片。
 5. **删除**：`element_delete` 会删除持久主体。先复述准确 id/name 并取得用户明确确认，再调用。
 
@@ -329,7 +329,7 @@ kling motion_control --model <model> --image ./subject.png --video ./motion.mp4 
 
 ## 前置条件
 
-- **Node.js 18+、Kling CLI 0.2.1+**（安装对应区域 npm 包后即可使用）；源码运行方式 `node --experimental-strip-types kling-cli/src/cli.ts <command> [options]` 需要 Node.js 22+，仅适用于已有源码的开发环境。
+- **Node.js 18+、Kling CLI 0.2.3+**（安装对应区域 npm 包后即可使用）；源码运行方式 `node --experimental-strip-types kling-cli/src/cli.ts <command> [options]` 需要 Node.js 22+，仅适用于已有源码的开发环境。
 - **端点已内置，无需配置**：对应区域包安装后开箱即用；**无外部配置口子**（无环境变量、无 `.env`、无 config 命令），不要尝试配置或探测端点地址。
 - **登录态**：保存在用户目录 **`~/.kling/.credentials`**（与包目录无关，升级/重装 CLI 不丢登录态），按**端点 host** 分 section（如 `[klingai.com]`），含 `ACCESS_TOKEN` / `REFRESH_TOKEN` 等（OAuth：DCR + 授权码 + PKCE + RFC 8707 resource）。token 过期由 CLI 用 refresh token **自动静默续期**并回写文件。
 - **任何输出/回复中不要复述端点地址等环境信息**。
@@ -432,7 +432,7 @@ kling motion_control --model <model> --image ./subject.png --video ./motion.mp4 
 ```bash
 kling                                   # 不带参数 = 顶层 --help：命令总览 + 最简三步引导
 kling --help                            # 同上（纯本地，不联网）
-kling <command> --help                  # 单命令自检：尽量拉实时 tools/list 声明（需登录），离线/未登录回退本地用法
+kling <command> --help                  # 单命令自检：生成命令读 who_am_i，其他 MCP 命令读 tools/list（需登录），离线/未登录回退本地用法
 kling login
 kling who_am_i
 kling tool_list                         # 列出服务端当前暴露的工具（需登录、不扣费）
@@ -456,12 +456,12 @@ kling account
 kling logout                            # 注销服务端授权并清除本地登录态
 ```
 
-- **自检优先**：拿不准某命令怎么传参时，先 `kling <command> --help`（实时 tools/list）；要全量模型/参数规格则 `kling who_am_i`；不确定服务端有哪些工具用 `kling tool_list`。
+- **自检优先**：拿不准某命令怎么传参时，先 `kling <command> --help`（生成命令读实时 who_am_i，其他 MCP 命令读 tools/list）；要全量模型/参数规格则 `kling who_am_i`；不确定服务端有哪些工具用 `kling tool_list`。
 - 各 flag 的**合法取值与默认值以 `who_am_i` 返回为准**；未提供的参数由服务端回填默认值。
 - 全局 flag：`--quiet` / `-q`（紧凑单行 JSON）、`--help` / `-h`（顶层或单命令帮助）、`--version` / `-v`（CLI 版本）。生成统一使用 `--model`；`--omni` 已移除。
-- **遥测 flag（通过本 skill 调用时，每条 `kling` 命令都应附带）**：`--skill-name kling-cli --skill-version <本 skill 版本>`（版本取自本文件 frontmatter 的 `version`，如 `0.2.1`）。纯遥测：除服务端统计 skill 使用情况外，`kling login` 时它还决定 OAuth 注册上报的 `client_name` 后缀（带 flag → `<运行时>_skill`，如 `cursor_skill`；不带 → `<运行时>_cli`），用于区分「skill 驱动」与「用户直接使用 CLI」。**不影响任何功能、不参与鉴权/灰度**，缺失也不报错。
+- **遥测 flag（通过本 skill 调用时，每条 `kling` 命令都应附带）**：`--skill-name kling-cli --skill-version <本 skill 版本>`（版本取自本文件 frontmatter 的 `version`，如 `0.2.3`）。纯遥测：除服务端统计 skill 使用情况外，`kling login` 时它还决定 OAuth 注册上报的 `client_name` 后缀（带 flag → `<运行时>_skill`，如 `cursor_skill`；不带 → `<运行时>_cli`），用于区分「skill 驱动」与「用户直接使用 CLI」。**不影响任何功能、不参与鉴权/灰度**，缺失也不报错。
 - **追踪参数 `taskTraceId` / `rationale`（面向 Agent，纯埋点、不影响任何功能，也不在 CLI `--help` 中展示）**：
-  - **先读服务端声明再传参**：这两个参数由服务端在 `tool_list` 各工具的 inputSchema 中声明（`<command> --help` 也会带出实时声明）。Agent 传参前应**仔细读一遍 `kling tool_list`**，确认工具当前支持的参数（含这两个追踪参数）后再组装 CLI 命令，不要凭记忆传。
+  - **先读服务端声明再传参**：这两个参数由服务端在 `tool_list` 各工具的 inputSchema 中声明（追踪参数以 `tool_list` 为准，不依赖生成命令帮助）。Agent 传参前应**仔细读一遍 `kling tool_list`**，确认工具当前支持的参数（含这两个追踪参数）后再组装 CLI 命令，不要凭记忆传。
   - `--task-trace-id <id>`：把**同一用户任务**下逻辑连续的多条命令归并到同一链路（如「先生成图、再把图转成视频」的 `text_to_image` → `image_to_video` → `query_tasks` 全程复用同一个 ID）。Agent 应在任务开始时生成一个 32 位字母数字 ID 并在该任务的每条 `kling` 命令上传同一个值；用户切到不相关的新任务时换一个全新 ID。不传时 CLI 会**静默生成**一个 32 位字母数字 ID（单条命令内部的上传/提交/轮询仍归并），但**跨命令链路**只有显式传值才能串起来。
   - `--rationale "<一句英文说明>"`（6 个生成命令，含 `omni_ref_video` / `motion_control`）：说明本次调用的核心目的与参数选择理由（如 "User uploaded a personal artwork and asked for a short animated clip; 4K per explicit user demand"）。不传时 CLI 自动传空串；不透传下游、不参与校验。
 - 轮询时**必须使用 Shell 工具逐次调用** `query_tasks`，不要用后台进程或一次性脚本，否则无法中间反馈。

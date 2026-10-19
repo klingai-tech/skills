@@ -20,7 +20,7 @@ CLI 是可灵后端 MCP server 的薄客户端：业务调用由 CLI 统一封�
 | 12 | `feedback` | 反馈 | 同步 | 是 | 上报卡住、计费异常或意外结果 |
 | 13 | `query_membership_and_credits` | 商业化 | 同步 | 是 | 查询会员身份与可用灵感值（身份取自 JWT，无参数） |
 
-> `kling <command> --help` 对上述 MCP-backed 命令会尽量实时读取该工具的 `tools/list` 声明（工具说明 + inputSchema）；完整模型清单与参数规格仍以 `who_am_i` 为准。示例：`kling image_to_image --help`。
+> `kling <command> --help` 对生成命令尽量读取实时 `who_am_i` 模型参数与输入槽位，其他 MCP 命令读取 `tools/list`（工具说明 + inputSchema）；完整模型清单与参数规格仍以 `who_am_i` 为准。示例：`kling image_to_image --help`。
 
 客户端入口另有 `login`、`tool_list` 和 `account`（映射 `query_membership_and_credits`）；`logout` 调用同名 MCP 工具，成功后清除本地凭据。完整 20 个 CLI 命令见 [SKILL.md](./SKILL.md)。以下 JSON 是协议说明，不应绕过 CLI 直接发送请求。
 
@@ -72,7 +72,7 @@ CLI 是可灵后端 MCP server 的薄客户端：业务调用由 CLI 统一封�
 ```
 
 - `model` 必填，必须来自 who_am_i 该工具的清单。
-- CLI 统一传 `--model <名称>`；`0.2.1` 已移除 `--omni`，指定系列也必须使用完整模型名。
+- CLI 统一传 `--model <名称>`；自 `0.2.1` 起已移除 `--omni`，指定系列也必须使用完整模型名。
 - `arguments[].value` **一律为字符串**；省略选填项由服务端回填默认值。
 - `inputs[].inputType` 当前仅 `"URL"`；`url` 须公网可访问：外部公网 URL（CDN / 外链、此前任务返回的 `works[].url`）直接使用，本地文件先 `file_upload` 换取 URL。`text_to_*` 通常无 inputs。
 - 可选追踪参数（纯埋点、不参与校验、不透传下游；以 `tool_list` 的 inputSchema 声明为准）：`taskTraceId`（全部工具；CLI 全局 flag `--task-trace-id`，同一任务链复用同一 ID，不传时 CLI 静默生成 32 位字母数字 ID）、`rationale`（6 个生成工具；CLI flag `--rationale`，说明创作意图与参数理由，不传时 CLI 自动传空串）。
@@ -97,8 +97,8 @@ CLI 写法以 `<command> --help` 为准，模型支持的输入、参数、必�
 | 命令 | 素材映射与调用约束 |
 |------|--------------------|
 | `text_to_image` / `text_to_video` | prompt 必填，通常无素材输入。 |
-| `image_to_image` | prompt 与 `--image` 必填，重复 `--image` 按模型声明的输入顺序填入。 |
-| `image_to_video` | `--image` 依次填非尾帧槽位，`--tailImage` 填声明的尾帧槽位；或用重复的 `--input <槽位名>=<url\|path>` 精确指定，不能与前两者混用。同一槽位只能指定一次，名称接受声明的 snake_case / camelCase 写法。仅模型声明可选时才能省略 prompt 或输入，不能二者都为空。 |
+| `image_to_image` | 提供位置 prompt 或 `--prompt`；显式空值 `--prompt ""` 是否允许依模型声明。重复 `--image` 按声明顺序填槽位，或用 `--input <槽位名>=<url\|path>` 精确指定，两者不能混用；必填槽位必须填齐。 |
+| `image_to_video` | `--image` 依次填非尾帧槽位，`--tailImage` 填声明的尾帧槽位；或用重复的 `--input <槽位名>=<url\|path>` 精确指定，不能与前两者混用。同一槽位只能指定一次，名称接受声明的 snake_case / camelCase 写法。仅模型声明可选时才能省略 prompt 或输入；prompt 字段必填但允许空文本时显式传 `--prompt ""`，省略与空值不同。 |
 | `omni_ref_video` | prompt 必填；重复的 `--image` / `--video` / `--audio` 分别映射到 `image_1..` / `video_1..` / `audio_1..`，只使用模型声明支持的类型。`--input` 可补充其他声明的槽位，不能重复占用。无必填输入时可以只传提示词。 |
 | `motion_control` | 主体 `--image` 必填；动作来源为 `--video` 或 `--motionId` 二选一，具体映射见下方「动作库与动作控制」。 |
 
@@ -126,7 +126,7 @@ kling omni_ref_video --model <model> --image ./ref.jpg --audio ./voice.mp3 \
   "让图片1中的角色按音频1说话" --poll 300
 ```
 
-所有生成命令复用上方提交响应，随后按 `generationId` 调用 `query_tasks`，从 `works[].url` 取结果。CLI 版本依据为 [`@klingai/cli-cn@0.2.1`](https://www.npmjs.com/package/@klingai/cli-cn/v/0.2.1)，具体模型能力仍由运行时声明决定。
+所有生成命令复用上方提交响应，随后按 `generationId` 调用 `query_tasks`，从 `works[].url` 取结果。CLI 版本依据为 [`@klingai/cli-cn@0.2.3`](https://www.npmjs.com/package/@klingai/cli-cn/v/0.2.3)，具体模型能力仍由运行时声明决定。
 
 ## query_tasks
 
