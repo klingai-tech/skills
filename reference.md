@@ -9,7 +9,7 @@
 ## who_am_i（能力发现）
 
 - **`user.userId`**：当前用户 ID（来自 JWT）。
-- **`availableModels`**：工具名 → 模型能力清单；空 `{}` 表示服务端尚未配置。
+- **`availableModels`**：按工具返回模型能力清单。工具条目可为模型数组，也可为 `{ defaultModel, models }`，此时从 `models` 读取下列字段。空 `{}` 表示当前响应未列出模型。
   - **`[].model`**：模型名（生成命令 `--model` 的合法取值）。
   - **`[].alias`**：对外别名（可能不出现）。
   - **`[].description`**：模型说明，**Agent 选型的主要依据**（适用场景、是否推荐等；可能不出现）。

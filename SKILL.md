@@ -24,14 +24,14 @@ homepage_global: https://kling.ai
 
 ---
 
-## 能力介绍（固定欢迎语，按需展示）
+## 能力介绍
 
-**触发时机**（满足任一即展示，纯本地、不调用命令、不扣费）：
+**固定欢迎语**（文案本身无需调用命令），适用于以下场景。
 
 1. 用户刚完成本 skill 或 CLI 的安装/登录，环境确认可用时；
 2. 用户询问可灵能做什么 / 有哪些能力 / 怎么用等**能力咨询类**意图（没有具体生成任务）时。
 
-**展示要求**（保留结构与 emoji，不增删条目、不自行改写含义）：
+**展示要求**（保留结构与 emoji。当前账号可用能力另见下方）：
 
 - **中文用户**：原样输出中文版。
 - **非中文用户**：**必须翻译，不得输出中文版**——优先以英文版为底稿翻译成用户语言（日语用户给日语、西语用户给西语等，示例引语一并翻译）；无法可靠翻译的语种**至少原样输出英文版**。
@@ -51,11 +51,14 @@ homepage_global: https://kling.ai
 🎬 生成视频
    · 文生视频 — "生成一段日落海边的 5 秒视频"
    · 图生视频 — "让这张图动起来"
+   · 关键帧 — "用这两张图指定开头和结尾"（取决于模型）
+   · 全能参考 — "保留图片里的角色，参考这段视频的运镜"
 
 🧩 可复用主体 — 创建和管理角色、动物、道具等 Element
 🎭 动作控制 — 用动作视频或动作库驱动主体图片
 
-📤 上传素材 — 本地图片可直接传，自动上传到可灵
+📤 上传素材 — 可直接使用本地图片、视频和音频，具体类型依所选入口而定
+📋 任务和账户 — 查生成进度、作品、会员和灵感值余额
 
 也可以结合 agent 及 skill 能力去实现一些复杂的创作流程。比如做个广告片、故事短片、批量创作一批素材等。
 ```
@@ -74,16 +77,25 @@ Here's what you can do with Kling:
 🎬 Generate videos
    · Text to video — "Generate a 5-second video of a sunset over the sea"
    · Image to video — "Bring this image to life"
+   · Keyframes — "Use these two images as the opening and closing frames" (model dependent)
+   · Omni Reference — "Keep the character from this image and use the camera movement from this video"
 
 🧩 Reusable subjects — create and manage character, animal, prop, and other Elements
 🎭 Motion control — drive a subject image with a motion video or saved motion
 
-📤 Upload assets — local images work out of the box and are uploaded to Kling automatically
+📤 Upload assets — use local images, videos, and audio where supported
+📋 Jobs and account — check generation progress, results, membership, and credit balance
 
 You can also combine agent and skill capabilities to build more complex creative workflows — like making an ad spot, a short story film, or batch-producing a set of assets.
 ```
 
-> 展示欢迎语本身不需要调用任何 `kling` 命令；若用户接着要精确的模型/参数清单，再走 `who_am_i`。
+**当前账号可用能力**
+
+- 用户问「现在能做什么」「有哪些能力」时，展示欢迎语，并用只读的 `kling who_am_i` 补充当前账号可用模型。安装或登录后展示欢迎语时，可直接使用本次验证已取得的清单。
+- 按图片、视频分组，用用户语言展示 `availableModels` 中的模型名称（优先使用易读的 `alias`，否则用 `model`）。同一模型出现在多个入口时合并展示，并标明各入口支持的创作方式。
+- 用户问具体模型、用途或参数时，只展示相关项。按对应入口核对素材类型与数量、时长、分辨率等限制，并在相关时说明参考素材的计费规则。比较时保留入口之间的差异，例如生成音轨和上传音频参考是两项能力。
+- 用户问当前账号能用哪些工具，或想确认主体库、动作库等工具是否开放时，另查只读的 `kling tool_list`，用创作用途说明服务端实际提供的工具。模型和参数以 `who_am_i` 为准。
+- CLI 未安装、未登录或查询失败时，仍可介绍通用能力，并说明当前账号的清单暂未确认。查询成功但目标模型未列出时，说明当前账号的对应入口未列出该模型。若问上线时间，使用有日期依据的信息回答。
 
 ---
 
@@ -228,7 +240,7 @@ kling <command> [args]
 
 - **模型清单与参数规格完全由服务端配置**：`who_am_i` 返回 `availableModels`（工具名 → 模型 → arguments/inputs 规格，含必填、默认值、值域）。
 - **单命令帮助会优先读取实时声明**：对 `who_am_i` / 生成 / 查询 / 上传 / 账户等 MCP-backed 命令，`kling <command> --help` 对生成命令尽量读取实时 `who_am_i` 模型参数与输入槽位，其他 MCP 命令读取 `tools/list`（工具说明 + inputSchema）；离线或未登录时回退本地静态用法。完整模型清单与参数规格仍以 `who_am_i` 为准。
-- 6 个生成命令均须显式传 `--model <名称>`（可用值来自对应工具的 `who_am_i` 清单）。用户指定 Omni / Flash 时也应查清完整模型名；CLI 不会替用户自动选择默认模型。
+- 6 个生成命令均须显式传 `--model <名称>`。用户指定模型时，按创作意图选择命令，在该命令的 `who_am_i` 清单中用名称或别名（`alias`）定位模型，传返回的 `model` 值。若无法唯一匹配，或该模型不支持所需输入或参数，向用户说明并确认后再提交；不要自行换模型。
 - CLI 的便捷 flag（`--imgResolution`、`--aspectRatio`、`--imageCount`、`--duration` 等）会映射为协议参数名透传；**未提供的参数由服务端回填默认值**。`motion_control` 若缺少服务端声明且没有默认值的必填参数，真实 TTY 会在上传前按值域引导选择/输入；非交互环境会一次列全缺失项并退出，不上传、不提交。
 - **输入按声明映射**：先用命令帮助确认 CLI 写法，再按 `who_am_i` 的 `inputs` 与 `arguments` 核对资源类型、槽位名和必填性；不要假设所有图生入口都必须有首帧，或所有生成命令都允许省略 prompt。使用具名输入时不得重复占用槽位，是否能与便捷 flag 混用以该命令帮助为准。各命令的映射和示例见 [api-examples.md](./api-examples.md)。
 - **组合限制也要核对**：宽高比是否跟随输入图、音频参数是否互斥、主体类型是否兼容等，以当前模型与工具说明为准；不能把某个模型的限制推广到整个命令或同系列模型。
@@ -241,8 +253,9 @@ kling <command> [args]
 
 | 用户意图 | 命令 | 说明 |
 |----------|--------|------|
-| 问可灵能做什么 / 有哪些能力（无具体任务） | — | 展示「能力介绍」固定欢迎语（见上），纯本地不调命令 |
-| 查可用模型 / 参数规格 / 能力发现 | `who_am_i` | 新会话建议先调 |
+| 问可灵能做什么 / 有哪些能力（无具体任务） | `who_am_i` | 展示通用能力和当前账号可用模型，见上方「能力介绍」 |
+| 查可用模型 / 指定模型是否可用 / 参数规格 | `who_am_i` | 直接展示与问题相关的能力和限制 |
+| 查账号开放的工具 / 主体库或动作库是否可用 | `tool_list` | 根据服务端实际返回说明工具用途 |
 | 生成图片 / 出图 / 文生图 | `text_to_image` | 提交后轮询 `query_tasks` |
 | 参考图生图 / 带参考图 | `image_to_image` | `--image` 可重复，提交后轮询 |
 | 生成视频 / 文生视频 | `text_to_video` | 提交后轮询 |
@@ -252,7 +265,7 @@ kling <command> [args]
 | 动作控制 / 动作迁移 | `motion_control` | 主体 `--image` + `--video` 或 `--motionId` 二选一；提交后轮询 |
 | 查看已保存动作 | `motion_library_list` | 取 motionId 后可交给 `motion_control` |
 | 上报卡住、模糊错误、计费异常、意外结果 | `feedback` | 只反馈，不会重试、退款或修复原任务 |
-| 明确要求 Omni / Flash 模型 | 按创作意图选命令，再传完整 `--model` | 从该工具的实时清单中选择；不能使用已移除的 `--omni` |
+| 明确指定模型或系列 | 按创作意图选命令，再传完整 `--model` | 用对应命令的实时模型清单解析名称或别名 |
 | 上传本地素材 | `file_upload` | 仅本地文件需要上传（返回公网 URL）；已是公网 URL 的素材无需上传，直接作 `--image` 传给生成命令 |
 | 查会员 / 账户身份 / 查余额 | `account` | 返回 userId + membership + 可用灵感值（直接展示） |
 | 充值 / 余额不足 / 开通会员 | `account` | 展示服务端返回的充值/会员链接（**动态取自 MCP，勿写死**，见「余额不足与充值」） |
@@ -459,7 +472,7 @@ kling logout                            # 注销服务端授权并清除本地�
 - **自检优先**：拿不准某命令怎么传参时，先 `kling <command> --help`（生成命令读实时 who_am_i，其他 MCP 命令读 tools/list）；要全量模型/参数规格则 `kling who_am_i`；不确定服务端有哪些工具用 `kling tool_list`。
 - 各 flag 的**合法取值与默认值以 `who_am_i` 返回为准**；未提供的参数由服务端回填默认值。
 - 全局 flag：`--quiet` / `-q`（紧凑单行 JSON）、`--help` / `-h`（顶层或单命令帮助）、`--version` / `-v`（CLI 版本）。生成统一使用 `--model`；`--omni` 已移除。
-- **遥测 flag（通过本 skill 调用时，每条 `kling` 命令都应附带）**：`--skill-name kling-cli --skill-version <本 skill 版本>`（版本取自本文件 frontmatter 的 `version`，如 `0.2.3`）。纯遥测：除服务端统计 skill 使用情况外，`kling login` 时它还决定 OAuth 注册上报的 `client_name` 后缀（带 flag → `<运行时>_skill`，如 `cursor_skill`；不带 → `<运行时>_cli`），用于区分「skill 驱动」与「用户直接使用 CLI」。**不影响任何功能、不参与鉴权/灰度**，缺失也不报错。
+- **遥测 flag（通过本 skill 调用时，每条 `kling` 命令都应附带）**：`--skill-name kling-cli --skill-version <本 skill 版本>`（版本取自本文件 frontmatter 的 `version`）。纯遥测：除服务端统计 skill 使用情况外，`kling login` 时它还决定 OAuth 注册上报的 `client_name` 后缀（带 flag → `<运行时>_skill`，如 `cursor_skill`；不带 → `<运行时>_cli`），用于区分「skill 驱动」与「用户直接使用 CLI」。**不影响任何功能、不参与鉴权/灰度**，缺失也不报错。
 - **追踪参数 `taskTraceId` / `rationale`（面向 Agent，纯埋点、不影响任何功能，也不在 CLI `--help` 中展示）**：
   - **先读服务端声明再传参**：这两个参数由服务端在 `tool_list` 各工具的 inputSchema 中声明（追踪参数以 `tool_list` 为准，不依赖生成命令帮助）。Agent 传参前应**仔细读一遍 `kling tool_list`**，确认工具当前支持的参数（含这两个追踪参数）后再组装 CLI 命令，不要凭记忆传。
   - `--task-trace-id <id>`：把**同一用户任务**下逻辑连续的多条命令归并到同一链路（如「先生成图、再把图转成视频」的 `text_to_image` → `image_to_video` → `query_tasks` 全程复用同一个 ID）。Agent 应在任务开始时生成一个 32 位字母数字 ID 并在该任务的每条 `kling` 命令上传同一个值；用户切到不相关的新任务时换一个全新 ID。不传时 CLI 会**静默生成**一个 32 位字母数字 ID（单条命令内部的上传/提交/轮询仍归并），但**跨命令链路**只有显式传值才能串起来。

@@ -111,6 +111,11 @@ CLI 写法以 `<command> --help` 为准，模型支持的输入、参数、必�
 ```bash
 kling text_to_image --model <model> "海边日落" --poll 120
 
+kling text_to_video --model <model> "海边日落，镜头缓慢推进"
+
+# 模型支持首帧输入时
+kling image_to_video --model <model> --image ./first.jpg "海浪轻轻涌动"
+
 # 模型支持这些槽位且 prompt 可选时，可按名称组合首、中、尾帧
 kling image_to_video --model <model> \
   --input first_image=./first.jpg --input keyframe_1=./middle.jpg \
