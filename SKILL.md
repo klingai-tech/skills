@@ -241,9 +241,11 @@ kling <command> [args]
 - **模型清单与参数规格完全由服务端配置**：`who_am_i` 返回 `availableModels`（工具名 → 模型 → arguments/inputs 规格，含必填、默认值、值域）。
 - **单命令帮助会优先读取实时声明**：对 `who_am_i` / 生成 / 查询 / 上传 / 账户等 MCP-backed 命令，`kling <command> --help` 对生成命令尽量读取实时 `who_am_i` 模型参数与输入槽位，其他 MCP 命令读取 `tools/list`（工具说明 + inputSchema）；离线或未登录时回退本地静态用法。完整模型清单与参数规格仍以 `who_am_i` 为准。
 - 6 个生成命令均须显式传 `--model <名称>`。用户指定模型时，按创作意图选择命令，在该命令的 `who_am_i` 清单中用名称或别名（`alias`）定位模型，传返回的 `model` 值。若无法唯一匹配，或该模型不支持所需输入或参数，向用户说明并确认后再提交；不要自行换模型。
+- **图片默认首选 Kling Image 4.0**：用户未指定模型时，在 `text_to_image` 或 `image_to_image` 的实时清单中优先选满足本次需求的 Kling Image 4.0，显式传入该条目的 `model` 值。该模型不可用或不满足所需参数、素材时，从对应命令的清单选择支持本次需求的模型。
 - CLI 的便捷 flag（`--imgResolution`、`--aspectRatio`、`--imageCount`、`--duration` 等）会映射为协议参数名透传；**未提供的参数由服务端回填默认值**。`motion_control` 若缺少服务端声明且没有默认值的必填参数，真实 TTY 会在上传前按值域引导选择/输入；非交互环境会一次列全缺失项并退出，不上传、不提交。
 - **输入按声明映射**：先用命令帮助确认 CLI 写法，再按 `who_am_i` 的 `inputs` 与 `arguments` 核对资源类型、槽位名和必填性；不要假设所有图生入口都必须有首帧，或所有生成命令都允许省略 prompt。使用具名输入时不得重复占用槽位，是否能与便捷 flag 混用以该命令帮助为准。各命令的映射和示例见 [api-examples.md](./api-examples.md)。
 - **组合限制也要核对**：宽高比是否跟随输入图、音频参数是否互斥、主体类型是否兼容等，以当前模型与工具说明为准；不能把某个模型的限制推广到整个命令或同系列模型。
+- **图片生成**：按所选模型的 `arguments` 核对分辨率、出图张数和生成模式，按 `inputs` 核对参考图数量和槽位。用户要连贯组图时，按声明设置组图模式和出图张数，并在提示词中说明每张图的内容和共用的主体、风格。
 - 输入除单类数量外，还可能有 **`combinedItemCap` 合计上限**（跨输入槽位与 `elements` 等数组参数）。`image_to_video` / `omni_ref_video` 会在上传前校验相关槽位、必填输入和合计数量；不要把各类上限相加后当作允许总量。字段见 [reference.md](./reference.md)。
 - 参数校验（必填、值域、未声明参数）由服务端在**扣费前**完成，报错信息会列出问题项；遇到参数类报错应把服务端信息翻译给用户。
 
@@ -369,7 +371,7 @@ kling motion_control --model <model> --image ./subject.png --video ./motion.mp4 
 
 ### 第 1 步：提交任务并立即反馈
 
-1. 用 `text_to_image` / `image_to_image` / `text_to_video` / `image_to_video` / `omni_ref_video` / `motion_control` 提交。每次提交都从对应工具的 `who_am_i` 清单中选择并显式传 `--model <名称>`；生成图片且用户明确指定数量时加 `--imageCount N`。
+1. 用 `text_to_image` / `image_to_image` / `text_to_video` / `image_to_video` / `omni_ref_video` / `motion_control` 提交。每次提交都从对应工具的 `who_am_i` 清单中选择并显式传 `--model <名称>`；生成图片且用户明确指定数量时，按模型声明传出图数量，例如 `--imageCount N`。
    - `image_to_image` 需 `--image <url|path>`；`image_to_video` / `omni_ref_video` 按模型声明与下方参考文档组织输入。本地文件自动上传；公网 URL（含此前任务的 `works[].url`）直接透传，无需下载或重新上传。
 2. 从响应中取 **`generationId`**（一次提交对应一个 generationId）和 `creditsConsumed`。
 3. **立即告诉用户**：任务已提交，消耗多少灵感值，正在开始轮询。
@@ -449,7 +451,7 @@ kling <command> --help                  # 单命令自检：生成命令读 who_
 kling login
 kling who_am_i
 kling tool_list                         # 列出服务端当前暴露的工具（需登录、不扣费）
-kling text_to_image --model M [--imageCount N] [--imgResolution 1k|2k] [--aspectRatio 1:1|...] [--poll N] "提示词"
+kling text_to_image --model M [--imageCount N] [--imgResolution 1k|2k|4k|8k] [--aspectRatio 1:1|...] [--poll N] "提示词"
 kling image_to_image --model M --image <url|path> [--image ...] [--imageCount N] [--poll N] "提示词"
 kling text_to_video --model M [--duration N] [--aspectRatio 16:9|...] [--poll N] "提示词"
 kling image_to_video --model M [--image <url|path>] [--tailImage <url|path>] [--duration N] [--poll N] [提示词]
@@ -470,7 +472,7 @@ kling logout                            # 注销服务端授权并清除本地�
 ```
 
 - **自检优先**：拿不准某命令怎么传参时，先 `kling <command> --help`（生成命令读实时 who_am_i，其他 MCP 命令读 tools/list）；要全量模型/参数规格则 `kling who_am_i`；不确定服务端有哪些工具用 `kling tool_list`。
-- 各 flag 的**合法取值与默认值以 `who_am_i` 返回为准**；未提供的参数由服务端回填默认值。
+- 分辨率速查汇总了不同模型的档位。各 flag 的**合法取值（含大小写）与默认值以当前模型的 `who_am_i` 声明为准**；未提供的参数由服务端回填默认值。
 - 全局 flag：`--quiet` / `-q`（紧凑单行 JSON）、`--help` / `-h`（顶层或单命令帮助）、`--version` / `-v`（CLI 版本）。生成统一使用 `--model`；`--omni` 已移除。
 - **遥测 flag（通过本 skill 调用时，每条 `kling` 命令都应附带）**：`--skill-name kling-cli --skill-version <本 skill 版本>`（版本取自本文件 frontmatter 的 `version`）。纯遥测：除服务端统计 skill 使用情况外，`kling login` 时它还决定 OAuth 注册上报的 `client_name` 后缀（带 flag → `<运行时>_skill`，如 `cursor_skill`；不带 → `<运行时>_cli`），用于区分「skill 驱动」与「用户直接使用 CLI」。**不影响任何功能、不参与鉴权/灰度**，缺失也不报错。
 - **追踪参数 `taskTraceId` / `rationale`（面向 Agent，纯埋点、不影响任何功能，也不在 CLI `--help` 中展示）**：
