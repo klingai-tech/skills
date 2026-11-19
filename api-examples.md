@@ -75,7 +75,7 @@ CLI 是可灵后端 MCP server 的薄客户端：业务调用由 CLI 统一封�
 - CLI 统一传 `--model <名称>`；自 `0.2.1` 起已移除 `--omni`，指定系列也必须使用完整模型名。
 - `arguments[].value` **一律为字符串**；省略选填项由服务端回填默认值。
 - `inputs[].inputType` 当前仅 `"URL"`；`url` 须公网可访问：外部公网 URL（CDN / 外链、此前任务返回的 `works[].url`）直接使用，本地文件先 `file_upload` 换取 URL。`text_to_*` 通常无 inputs。
-- 可选追踪参数（纯埋点、不参与校验、不透传下游；以 `tool_list` 的 inputSchema 声明为准）：`taskTraceId`（全部工具；CLI 全局 flag `--task-trace-id`，同一任务链复用同一 ID，不传时 CLI 静默生成 32 位字母数字 ID）、`rationale`（6 个生成工具；CLI flag `--rationale`，说明创作意图与参数理由，不传时 CLI 自动传空串）。
+- 可选追踪参数（纯埋点、不参与校验、不透传下游；以 `tool_list` 的 inputSchema 声明为准）：`taskTraceId`（全部工具；CLI 全局 flag `--task-trace-id`，同一任务链复用同一 ID，不传时 CLI 静默生成 UUIDv7（标准带连字符格式））、`rationale`（6 个生成工具；CLI flag `--rationale`，说明创作意图与参数理由，不传时 CLI 自动传空串）。
 
 服务端在转发下游（扣费）前做本地校验，任一不过即报参数错误（**聚合列出所有问题项**）：model 在清单内、argument 名非空/不重复/已声明、必填不缺、值域命中、inputs 同理。
 
@@ -113,6 +113,9 @@ kling text_to_image --model <model> "海边日落" --poll 120
 
 kling text_to_video --model <model> "海边日落，镜头缓慢推进"
 
+# 模型在当前入口声明支持 HDR 和所选分辨率时
+kling text_to_video --model <model> --hdr hdr --resolution 1080p "海边日落，镜头缓慢推进"
+
 # 模型支持首帧输入时
 kling image_to_video --model <model> --image ./first.jpg "海浪轻轻涌动"
 
@@ -131,7 +134,7 @@ kling omni_ref_video --model <model> --image ./ref.jpg --audio ./voice.mp3 \
   "让图片1中的角色按音频1说话" --poll 300
 ```
 
-所有生成命令复用上方提交响应，随后按 `generationId` 调用 `query_tasks`，从 `works[].url` 取结果。CLI 版本依据为 [`@klingai/cli-cn@0.2.3`](https://www.npmjs.com/package/@klingai/cli-cn/v/0.2.3)，具体模型能力仍由运行时声明决定。
+所有生成命令复用上方提交响应，随后按 `generationId` 调用 `query_tasks`，从 `works[].url` 取结果。CLI 版本依据为 [`@klingai/cli-cn@0.2.4`](https://www.npmjs.com/package/@klingai/cli-cn/v/0.2.4)，具体模型能力仍由运行时声明决定。
 
 ## query_tasks
 
@@ -228,7 +231,7 @@ kling feedback --summary "Generation completed with an empty works list" \
 
 `membershipType`：`NORMAL` / `VIP` / `SVIP` / `SSVIP` / `SSSVIP`；`availableRemainCredits` 为用户可见的灵感值，无需换算。
 
-> CLI 的 `account` 命令即此工具的直通调用。
+> 使用 `kling account` 查询当前账号余额。CLI 0.2.4 会拒绝工作区选项，余额响应不标识工作区或计费归属。
 
 ## 工具发现（CLI `tool_list`）
 

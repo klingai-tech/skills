@@ -41,6 +41,7 @@
   - **`contentType`**：`image` / `video`。
   - **`url`**：资源 URL（带水印，默认展示）。
   - **`urlWithoutWatermark`**：无水印资源 URL（用户要求时展示）。
+  - **`previewUrl`** / **`previewUrlWithoutWatermark`**：可选的视频播放链接。原分辨率下载使用对应的 `url` / `urlWithoutWatermark`。
   - **`coverUrl`** / **`coverUrlWithoutWatermark`**：封面 URL。
 
 ## file_upload（两步式）
@@ -71,6 +72,8 @@
 - 先调用服务端 MCP `logout`；成功后清除本地登录态。服务端失败时保留本地登录态并返回错误，不继续登录。
 
 ## account（query_membership_and_credits 直通）
+
+查询当前账号的会员与余额。返回字段不标识个人或团队工作区的计费归属。
 
 - **`userId`**：用户 ID。
 - **`membershipType`**：会员身份（`NORMAL` / `VIP` / `SVIP` / `SSVIP` / `SSSVIP`）。
