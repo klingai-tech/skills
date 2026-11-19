@@ -113,6 +113,10 @@ kling text_to_image --model <model> "海边日落" --poll 120
 
 kling text_to_video --model <model> "海边日落，镜头缓慢推进"
 
+# 标准版可灵 4.0 在该入口声明支持 1080p HDR 时
+kling text_to_video --model kling-video-v4_0 --resolution 1080p --hdr hdr \
+  "海边日落，镜头缓慢推进"
+
 # 模型支持首帧输入时
 kling image_to_video --model <model> --image ./first.jpg "海浪轻轻涌动"
 
@@ -131,7 +135,11 @@ kling omni_ref_video --model <model> --image ./ref.jpg --audio ./voice.mp3 \
   "让图片1中的角色按音频1说话" --poll 300
 ```
 
-所有生成命令复用上方提交响应，随后按 `generationId` 调用 `query_tasks`，从 `works[].url` 取结果。CLI 版本依据为 [`@klingai/cli-cn@0.2.3`](https://www.npmjs.com/package/@klingai/cli-cn/v/0.2.3)，具体模型能力仍由运行时声明决定。
+上例的 `--resolution 1080p --hdr hdr` 对应 MCP `arguments` 中的 `{"name":"resolution","value":"1080p"}` 和 `{"name":"hdr","value":"hdr"}`。`image_to_video` 和 `omni_ref_video` 在所选模型声明支持时也使用相同参数，并按声明传入素材。
+
+标准版可灵 4.0 的 HDR 档位为 `1080p` 和 `4k`，`hdr` 默认 `none`，仅选 4K 时仍使用默认值。720p 和 4.0 Flash 不支持 HDR 输出。已有 HDR 视频转为 SDR 后可用作参考、编辑或视频主体素材。
+
+所有生成命令复用上方提交响应，随后按 `generationId` 调用 `query_tasks`，从 `works[].url` 取结果。示例使用 CLI 0.2.4，具体模型能力仍由运行时声明决定。
 
 ## query_tasks
 
