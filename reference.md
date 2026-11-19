@@ -39,9 +39,9 @@
 - **`works[]`**：产出列表：
   - **`status`**：单个产出状态。
   - **`contentType`**：`image` / `video`。
-  - **`url`**：资源 URL（带水印，默认展示）。
-  - **`urlWithoutWatermark`**：无水印资源 URL（用户要求时展示）。
-  - **`previewUrl`** / **`previewUrlWithoutWatermark`**：可选的视频播放链接。原分辨率下载使用对应的 `url` / `urlWithoutWatermark`。
+  - **`url`**：原始资源 URL（带水印，默认下载地址）。
+  - **`urlWithoutWatermark`**：无水印原始资源 URL（用户要求时提供）。
+  - **`previewUrl`** / **`previewUrlWithoutWatermark`**：服务端提供独立视频预览时返回的播放地址。
   - **`coverUrl`** / **`coverUrlWithoutWatermark`**：封面 URL。
 
 ## file_upload（两步式）

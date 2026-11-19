@@ -228,7 +228,7 @@ kling <command> [args]
 4. **生成必须显式选模型**：`text_to_image` / `image_to_image` / `text_to_video` / `image_to_video` / `omni_ref_video` / `motion_control` 均必须带 `--model <名称>`（取自对应工具的 `who_am_i` 清单）。**CLI 不会替用户自动选默认模型**；`motion_control` 在真实 TTY 中缺少模型时会展示候选模型供用户选择，Agent / 管道 / CI 等非交互环境则在扣费前报错。
 5. **素材直接传本地路径或公网 URL**：按所选命令的帮助传图片、视频或音频素材；本地文件由 CLI 自动 `file_upload`，无需手动上传；**公网 URL（外部 CDN / 外链，或此前可灵任务返回的 `works[].url`）直接透传给服务端，无需先下载、重新上传或本地校验**。素材的格式 / 大小等限制以工具实时声明为准（`kling <command> --help` / `kling tool_list`）。
 6. **提交后立即反馈再轮询**：从响应取 `generationId` 与 `creditsConsumed` 先告知用户；再用 `kling query_tasks <generationId>` 轮询，或提交时加 `--poll [N]` 一步出结果（裸 `--poll` 默认 60s，`--poll 0` 关闭内联轮询）。
-7. **结果在 `works[].url`**：完成后提取并展示；用户要无水印时用 `works[].urlWithoutWatermark`。
+7. **结果在 `works[]`**：提取原片链接并按「结果展示」交付。视频有独立预览时优先用预览播放。
 8. **余额 / 会员看 `account`**：余额不足时展示服务端动态返回的充值链接（勿写死）。
 9. **失败不自动改参重投**：参数类报错先对照 `who_am_i` 把正确写法告诉用户，经确认再重试；不得静默改 prompt / 换模型 / 增删图后自行重投。
 
@@ -245,8 +245,7 @@ kling <command> [args]
 - CLI 的便捷 flag（`--imgResolution`、`--aspectRatio`、`--imageCount`、`--duration` 等）会映射为协议参数名透传；**未提供的参数由服务端回填默认值**。`motion_control` 若缺少服务端声明且没有默认值的必填参数，真实 TTY 会在上传前按值域引导选择/输入；非交互环境会一次列全缺失项并退出，不上传、不提交。
 - **输入按声明映射**：先用命令帮助确认 CLI 写法，再按 `who_am_i` 的 `inputs` 与 `arguments` 核对资源类型、槽位名和必填性；不要假设所有图生入口都必须有首帧，或所有生成命令都允许省略 prompt。使用具名输入时不得重复占用槽位，是否能与便捷 flag 混用以该命令帮助为准。各命令的映射和示例见 [api-examples.md](./api-examples.md)。
 - 六个生成命令中，`--poll` 可以省略选项值。其他生成选项需要显式传值，素材选项需与命令匹配。CLI 在上传前检查选项和必填素材。
-- **组合限制也要核对**：宽高比是否跟随输入图、音频参数是否互斥、主体类型是否兼容等，以当前模型与工具说明为准；不能把某个模型的限制推广到整个命令或同系列模型。
-- **HDR 视频**：先确认对应生成入口的实时模型声明支持 `hdr` 参数，并核对分辨率和其他限制。模型声明允许时用 `--hdr hdr`。对需要参考或编辑的 HDR 视频，请用户提供 SDR 版本。
+- **按声明设置参数并核对组合限制**：根据创作意图选择入口，再按当前账号的 `who_am_i` 和工具说明检查所选模型的参数、默认值、可用组合与输入兼容性。用户明确要求的规格应显式传入相应参数。如果当前入口或模型无法满足，说明限制，等用户确认可用规格后再提交。
 - **图片生成**：按所选模型的 `arguments` 核对分辨率、出图张数和生成模式，按 `inputs` 核对参考图数量和槽位。用户要连贯组图时，按声明设置组图模式和出图张数，并在提示词中说明每张图的内容和共用的主体、风格。
 - 输入除单类数量外，还可能有 **`combinedItemCap` 合计上限**（跨输入槽位与 `elements` 等数组参数）。`image_to_video` / `omni_ref_video` 会在上传前校验相关槽位、必填输入和合计数量；不要把各类上限相加后当作允许总量。字段见 [reference.md](./reference.md)。
 - 参数校验（必填、值域、未声明参数）由服务端在**扣费前**完成，报错信息会列出问题项；遇到参数类报错应把服务端信息翻译给用户。
@@ -404,7 +403,8 @@ kling motion_control --model <model> --image ./subject.png --video ./motion.mp4 
   - **用户明确要求无水印**：`works[].urlWithoutWatermark`、`works[].coverUrlWithoutWatermark`。
   - `works[].contentType`：`image` / `video`。
 - **图片**：用 `![描述](url)` 内联展示；**无论是否渲染成功，必须同时附上可点击的原始链接**。
-- **视频**：优先用 `works[].previewUrl` 播放，缺少该字段时可用 `works[].url`。另附 `works[].url` 作为原分辨率下载链接。用户要求无水印时，使用对应的 `previewUrlWithoutWatermark` 和 `urlWithoutWatermark`。
+- **视频**：优先用 `works[].previewUrl` 内联播放，用户要求无水印时用 `works[].previewUrlWithoutWatermark`。缺少对应预览时用对应原片播放。始终附上可点击的原分辨率下载链接。
+- **输出规格**：需要确认成品规格时，依据服务端作品信息或原片元数据核实。只有提交参数时，说明请求的规格。
 - **核心原则：资源链接必须明文输出给用户**（部分环境不支持内联渲染）。
 - 全部完成后给汇总；**资源链接可能有保留期限**，提醒用户及时保存。
 
