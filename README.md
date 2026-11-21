@@ -22,6 +22,16 @@ The Skill uses the Kling CLI. Choose the package for the region of your Kling ac
 
 VS Code plugin links require Copilot Agent Host support and the `chat.plugins.enabled` setting. The first connection uses the selected region's OAuth flow.
 
+## Other official plugin integrations
+
+- [Cursor](https://github.com/klingai-tech/cursor-plugin)
+- [ChatGPT](https://github.com/klingai-dev/chatgpt-plugin)
+- [OpenClaw](https://github.com/klingai-dev/openclaw-plugin)
+- [WorkBuddy](https://github.com/klingai-tech/workbuddy-plugin)
+- [DeepSeek](https://github.com/klingai-dev/deepseek-plugin)
+- [Pi](https://github.com/klingai-dev/pi-plugin)
+- [Antigravity](https://github.com/klingai-dev/antigravity-plugin)
+
 Generation uses credits from the connected regional Kling account. Check the official regional guide for client-specific setup, supported models, and usage details:
 
 - [Global Kling MCP and CLI guide](https://kling.ai/app/mcp/guide)
