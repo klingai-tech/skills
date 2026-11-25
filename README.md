@@ -12,8 +12,15 @@ The Skill uses the Kling CLI. Choose the package for the region of your Kling ac
 
 | Region | Official plugin source | Copilot CLI | VS Code | Standalone CLI | MCP endpoint |
 | --- | --- | --- | --- | --- | --- |
-| Global (`kling.ai`) | [Kling AI Global Plugin](https://github.com/klingai-tech/claude-plugin) · [npm package](https://www.npmjs.com/package/@klingai/plugin-global) | `copilot plugin install kling-ai@klingai` | [Install in VS Code](https://vscode.dev/redirect?url=vscode%3A%2F%2Fchat-plugin%2Finstall%3Fsource%3Dklingai-tech%252Fclaude-plugin%26plugin%3Dkling-ai) | `npm i -g @klingai/cli-global --registry=https://registry.npmjs.org` | `https://kling.ai/mcp/plugin` |
-| China (`klingai.com`) | [Kling AI China Plugin](https://github.com/klingai-tech/claude-plugin-cn) · [npm package](https://www.npmjs.com/package/@klingai/plugin-cn) | `copilot plugin install kling-ai-cn@klingai-cn` | [Install in VS Code](https://vscode.dev/redirect?url=vscode%3A%2F%2Fchat-plugin%2Finstall%3Fsource%3Dklingai-tech%252Fclaude-plugin-cn%26plugin%3Dkling-ai-cn) | `npm i -g @klingai/cli-cn --registry=https://registry.npmjs.org` | `https://klingai.com/mcp/plugin` |
+| Global (`kling.ai`) | [Kling AI Global Plugin](https://github.com/klingai-tech/claude-plugin) · [npm package](https://www.npmjs.com/package/@klingai/plugin-global) | `copilot plugin install kling-ai@klingai` | [Install in VS Code](https://vscode.dev/redirect?url=vscode%3A%2F%2Fchat-plugin%2Finstall%3Fsource%3Dklingai-tech%252Fclaude-plugin%26plugin%3Dkling-ai) | `npm i -g @klingai/cli-global@latest --registry=https://registry.npmjs.org` | `https://kling.ai/mcp/plugin` |
+| China (`klingai.com`) | [Kling AI China Plugin](https://github.com/klingai-tech/claude-plugin-cn) · [npm package](https://www.npmjs.com/package/@klingai/plugin-cn) | `copilot plugin install kling-ai-cn@klingai-cn` | [Install in VS Code](https://vscode.dev/redirect?url=vscode%3A%2F%2Fchat-plugin%2Finstall%3Fsource%3Dklingai-tech%252Fclaude-plugin-cn%26plugin%3Dkling-ai-cn) | `npm i -g @klingai/cli-cn@latest --registry=https://registry.npmjs.org` | `https://klingai.com/mcp/plugin` |
+
+## Install the npm plugin package
+
+These packages install the full plugin and its local CLI. npm requires explicit approval for their install scripts:
+
+- Global: `npm i -g @klingai/plugin-global@latest --registry=https://registry.npmjs.org --allow-scripts=@klingai/plugin-global`
+- China: `npm i -g @klingai/plugin-cn@latest --registry=https://registry.npmjs.org --allow-scripts=@klingai/plugin-cn`
 
 ## Install the plugin in an agent
 
