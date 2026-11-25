@@ -1,5 +1,7 @@
 # Kling AI Skills and developer integrations
 
+[![skills.sh installs](https://skills.sh/b/klingai-tech/skills)](https://skills.sh/klingai-tech/skills)
+
 Install the official Kling CLI Skill in a compatible coding agent:
 
 ```bash
