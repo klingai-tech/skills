@@ -29,7 +29,6 @@ VS Code plugin links require Copilot Agent Host support and the `chat.plugins.en
 - [Cursor](https://github.com/klingai-tech/cursor-plugin)
 - [ChatGPT](https://github.com/klingai-dev/chatgpt-plugin)
 - [OpenClaw](https://github.com/klingai-dev/openclaw-plugin)
-- [WorkBuddy](https://github.com/klingai-tech/workbuddy-plugin)
 - [DeepSeek](https://github.com/klingai-dev/deepseek-plugin)
 - [Pi](https://github.com/klingai-dev/pi-plugin)
 - [Antigravity](https://github.com/klingai-dev/antigravity-plugin)
