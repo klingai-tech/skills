@@ -34,7 +34,7 @@ VS Code plugin links require Copilot Agent Host support and the `chat.plugins.en
 ## Other official plugin integrations
 
 - [Cursor](https://github.com/klingai-tech/cursor-plugin)
-- [ChatGPT](https://github.com/klingai-dev/chatgpt-plugin)
+- [ChatGPT app directory](https://chatgpt.com/plugins/plugins_6a86c3ff68a08191be42add5a9567875) · [source](https://github.com/klingai-dev/chatgpt-plugin)
 - [OpenClaw](https://github.com/klingai-dev/openclaw-plugin)
 - [DeepSeek](https://github.com/klingai-dev/deepseek-plugin)
 - [Pi](https://github.com/klingai-dev/pi-plugin)
