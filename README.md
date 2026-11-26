@@ -111,7 +111,7 @@ Install the regional Kling CLI package and sign in as described above before usi
 ## Other official plugin integrations
 
 - [Cursor](https://github.com/klingai-tech/cursor-plugin)
-- [ChatGPT app directory](https://chatgpt.com/plugins/plugins_6a86c3ff68a08191be42add5a9567875) · [source](https://github.com/klingai-dev/chatgpt-plugin)
+- [ChatGPT + Codex universal plugin directory](https://chatgpt.com/plugins/plugins_6a86c3ff68a08191be42add5a9567875) · [source](https://github.com/klingai-dev/chatgpt-plugin)
 - [OpenClaw Global on ClawHub](https://hub.openclaw.ai/klingai-dev/plugins/kling-ai-global-openclaw) · [China on ClawHub](https://hub.openclaw.ai/klingai-dev/plugins/kling-ai-openclaw) · [source](https://github.com/klingai-dev/openclaw-plugin)
 - [DeepSeek](https://github.com/klingai-dev/deepseek-plugin)
 - [Pi](https://github.com/klingai-dev/pi-plugin)
