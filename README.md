@@ -88,6 +88,15 @@ In Manus, open **Connectors** → **Create** → **Add MCP by URL**. Add the end
 
 See the [Manus MCP connector guide](https://manus.im/docs/integrations/mcp-connectors) and its [custom MCP setup instructions](https://www.manus.im/features/connectors#custom-mcp-server-and-api-key).
 
+## Use Kling MCP in n8n workflows
+
+Add n8n's **MCP Client** node to a workflow and configure **Server Transport** as Streamable HTTP. Use the endpoint for your Kling account region, then choose OAuth2 authentication and complete the authorization flow.
+
+- Global: `https://kling.ai/mcp/plugin`
+- China: `https://klingai.com/mcp/plugin`
+
+See the [n8n MCP Client documentation](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-langchain.mcpclient/) and [MCP credentials guide](https://docs.n8n.io/integrations/builtin/credentials/mcp/).
+
 ## Install in Hermes Agent
 
 Hermes can search the Kling CLI Skill from the skills.sh catalog:
