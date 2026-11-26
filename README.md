@@ -31,11 +31,88 @@ These packages install the full plugin and its local CLI. npm requires explicit 
 
 VS Code plugin links require Copilot Agent Host support and the `chat.plugins.enabled` setting. The first connection uses the selected region's OAuth flow.
 
+## Connect from popular MCP coding clients
+
+Use the endpoint for your Kling account region. Complete OAuth with the same regional Kling account when prompted.
+
+### CodeBuddy CLI
+
+```bash
+codebuddy mcp add --scope user --transport http kling-ai https://kling.ai/mcp/plugin
+```
+
+For China accounts, replace the URL with `https://klingai.com/mcp/plugin`. See the [CodeBuddy MCP guide](https://www.codebuddy.ai/docs/cli/mcp).
+
+### Kimi Code CLI
+
+```bash
+kimi mcp add --transport http --auth oauth kling-ai https://kling.ai/mcp/plugin
+```
+
+For China accounts, replace the URL with `https://klingai.com/mcp/plugin`. See the [Kimi MCP command reference](https://github.com/MoonshotAI/kimi-cli/blob/main/docs/en/reference/kimi-mcp.md).
+
+### GitHub Copilot CLI
+
+```bash
+copilot mcp add --transport http kling-ai https://kling.ai/mcp/plugin
+```
+
+For China accounts, replace the URL with `https://klingai.com/mcp/plugin`. See the [Copilot CLI MCP guide](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers).
+
+### OpenCode
+
+Add this entry to `opencode.json`, then run `opencode mcp auth kling-ai` to authorize:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "kling-ai": {
+        "type": "remote",
+        "url": "https://kling.ai/mcp/plugin"
+      }
+    }
+  }
+}
+```
+
+For China accounts, replace the URL with `https://klingai.com/mcp/plugin`. See the [OpenCode MCP guide](https://opencode.ai/docs/mcp-servers/).
+
+## Connect from Manus
+
+In Manus, open **Connectors** → **Create** → **Add MCP by URL**. Add the endpoint for your Kling account region and authorize that account if prompted.
+
+- Global: name the server `Kling AI Global` and use `https://kling.ai/mcp/plugin`.
+- China: name the server `Kling AI China` and use `https://klingai.com/mcp/plugin`.
+
+See the [Manus MCP connector guide](https://manus.im/docs/integrations/mcp-connectors) and its [custom MCP setup instructions](https://www.manus.im/features/connectors#custom-mcp-server-and-api-key).
+
+## Use Kling MCP in n8n workflows
+
+Add n8n's **MCP Client** node to a workflow and configure **Server Transport** as Streamable HTTP. Use the endpoint for your Kling account region, then choose OAuth2 authentication and complete the authorization flow.
+
+- Global: `https://kling.ai/mcp/plugin`
+- China: `https://klingai.com/mcp/plugin`
+
+See the [n8n MCP Client documentation](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-langchain.mcpclient/) and [MCP credentials guide](https://docs.n8n.io/integrations/builtin/credentials/mcp/).
+
+## Install in Hermes Agent
+
+Hermes can search the Kling CLI Skill from the skills.sh catalog:
+
+```bash
+hermes skills search kling --source skills-sh
+hermes skills install skills-sh/klingai-tech/skills/kling-cli
+```
+
+Install the regional Kling CLI package and sign in as described above before using the Skill. See the [Hermes skills guide](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills).
+
 ## Other official plugin integrations
 
 - [Cursor](https://github.com/klingai-tech/cursor-plugin)
-- [ChatGPT app directory](https://chatgpt.com/plugins/plugins_6a86c3ff68a08191be42add5a9567875) · [source](https://github.com/klingai-dev/chatgpt-plugin)
-- [OpenClaw](https://github.com/klingai-dev/openclaw-plugin)
+- [ChatGPT + Codex universal plugin directory](https://chatgpt.com/plugins/plugins_6a86c3ff68a08191be42add5a9567875) · [source](https://github.com/klingai-dev/chatgpt-plugin)
+- [OpenClaw Global on ClawHub](https://hub.openclaw.ai/klingai-dev/plugins/kling-ai-global-openclaw) · [China on ClawHub](https://hub.openclaw.ai/klingai-dev/plugins/kling-ai-openclaw) · [source](https://github.com/klingai-dev/openclaw-plugin)
 - [DeepSeek](https://github.com/klingai-dev/deepseek-plugin)
 - [Pi](https://github.com/klingai-dev/pi-plugin)
 - [Antigravity](https://github.com/klingai-dev/antigravity-plugin)
