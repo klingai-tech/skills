@@ -31,11 +31,22 @@ These packages install the full plugin and its local CLI. npm requires explicit 
 
 VS Code plugin links require Copilot Agent Host support and the `chat.plugins.enabled` setting. The first connection uses the selected region's OAuth flow.
 
+## Install in Hermes Agent
+
+Hermes can search the Kling CLI Skill from the skills.sh catalog:
+
+```bash
+hermes skills search kling --source skills-sh
+hermes skills install skills-sh/klingai-tech/skills/kling-cli
+```
+
+Install the regional Kling CLI package and sign in as described above before using the Skill. See the [Hermes skills guide](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills).
+
 ## Other official plugin integrations
 
 - [Cursor](https://github.com/klingai-tech/cursor-plugin)
 - [ChatGPT app directory](https://chatgpt.com/plugins/plugins_6a86c3ff68a08191be42add5a9567875) · [source](https://github.com/klingai-dev/chatgpt-plugin)
-- [OpenClaw](https://github.com/klingai-dev/openclaw-plugin)
+- [OpenClaw Global on ClawHub](https://hub.openclaw.ai/klingai-dev/plugins/kling-ai-global-openclaw) · [China on ClawHub](https://hub.openclaw.ai/klingai-dev/plugins/kling-ai-openclaw) · [source](https://github.com/klingai-dev/openclaw-plugin)
 - [DeepSeek](https://github.com/klingai-dev/deepseek-plugin)
 - [Pi](https://github.com/klingai-dev/pi-plugin)
 - [Antigravity](https://github.com/klingai-dev/antigravity-plugin)
