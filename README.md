@@ -79,6 +79,15 @@ Add this entry to `opencode.json`, then run `opencode mcp auth kling-ai` to auth
 
 For China accounts, replace the URL with `https://klingai.com/mcp/plugin`. See the [OpenCode MCP guide](https://opencode.ai/docs/mcp-servers/).
 
+## Connect from Manus
+
+In Manus, open **Connectors** → **Create** → **Add MCP by URL**. Add the endpoint for your Kling account region and authorize that account if prompted.
+
+- Global: name the server `Kling AI Global` and use `https://kling.ai/mcp/plugin`.
+- China: name the server `Kling AI China` and use `https://klingai.com/mcp/plugin`.
+
+See the [Manus MCP connector guide](https://manus.im/docs/integrations/mcp-connectors) and its [custom MCP setup instructions](https://www.manus.im/features/connectors#custom-mcp-server-and-api-key).
+
 ## Install in Hermes Agent
 
 Hermes can search the Kling CLI Skill from the skills.sh catalog:
